@@ -4,9 +4,10 @@ interface CharacterStatsProps {
   character: Character | Creature
   label: string
   tookDamage?: boolean
+  imageUrl?: string
 }
 
-export function CharacterStats({ character, label, tookDamage = false }: CharacterStatsProps) {
+export function CharacterStats({ character, label, tookDamage = false, imageUrl }: CharacterStatsProps) {
   const staminaPercentage = (character.currentStamina / character.maxStamina) * 100
 
   return (
@@ -14,6 +15,18 @@ export function CharacterStats({ character, label, tookDamage = false }: Charact
       <h3 className="font-cinzel font-bold text-lg text-dark-brown mb-3">
         {label}
       </h3>
+
+      {/* Creature Image */}
+      {imageUrl && (
+        <div className="mb-4 rounded-lg overflow-hidden bg-dark-brown/5">
+          <img
+            src={imageUrl}
+            alt={character.name}
+            className="w-full max-w-[200px] md:max-w-[300px] mx-auto object-cover"
+          />
+        </div>
+      )}
+
       <div className="text-dark-brown mb-2">
         <span className="font-semibold">{character.name}</span>
       </div>

@@ -9,6 +9,7 @@ import {
 
 interface GameStore extends GameState {
   // Actions
+  selectCreature: (name: string, skill: number, stamina: number, imageUrl?: string) => void
   createCharacter: (name: string, skill: number, stamina: number) => void
   startBattle: () => void
   rollAttack: () => void
@@ -40,6 +41,18 @@ const initialState: GameState = {
 
 export const useGameStore = create<GameStore>((set, get) => ({
   ...initialState,
+
+  selectCreature: (name: string, skill: number, stamina: number, imageUrl?: string) => {
+    set({
+      creature: {
+        name,
+        skill,
+        maxStamina: stamina,
+        currentStamina: stamina,
+        imageUrl,
+      },
+    })
+  },
 
   createCharacter: (name: string, skill: number, stamina: number) => {
     set({

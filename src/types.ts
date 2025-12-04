@@ -19,6 +19,7 @@ export interface Creature {
   skill: number
   maxStamina: number
   currentStamina: number
+  imageUrl?: string
 }
 
 export interface CombatLogEntry {

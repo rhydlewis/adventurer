@@ -45,6 +45,7 @@ export function BattleScreen() {
           character={creature}
           label="Enemy"
           tookDamage={creatureTookDamage}
+          imageUrl={creature.imageUrl}
         />
       </div>
 
