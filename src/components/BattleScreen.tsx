@@ -3,6 +3,7 @@ import { CharacterStats } from './CharacterStats'
 import { Die } from './Die'
 import { CombatLogModal } from './CombatLogModal'
 import { InventoryPanel } from './InventoryPanel'
+import { SpeechBubble } from './SpeechBubble'
 import { useState, useEffect } from 'react'
 
 export function BattleScreen() {
@@ -16,6 +17,8 @@ export function BattleScreen() {
   const rollAttack = useGameStore((state) => state.rollAttack)
   const rollSpecialAttack = useGameStore((state) => state.rollSpecialAttack)
   const toggleFullLog = useGameStore((state) => state.toggleFullLog)
+  const activeReaction = useGameStore((state) => state.activeReaction)
+  const clearReaction = useGameStore((state) => state.clearReaction)
 
   const [playerWasHealed, setPlayerWasHealed] = useState(false)
   const [previousPlayerStamina, setPreviousPlayerStamina] = useState(player?.currentStamina || 0)
@@ -64,18 +67,40 @@ export function BattleScreen() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-4 mb-6">
-        <CharacterStats
-          character={player}
-          label="You"
-          tookDamage={playerTookDamage}
-          wasHealed={playerWasHealed}
-        />
-        <CharacterStats
-          character={creature}
-          label="Enemy"
-          tookDamage={creatureTookDamage}
-          imageUrl={creature.imageUrl}
-        />
+        <div className="relative">
+          <CharacterStats
+            character={player}
+            label="You"
+            tookDamage={playerTookDamage}
+            wasHealed={playerWasHealed}
+          />
+          {/* Player Speech Bubble */}
+          {activeReaction && activeReaction.entity === 'player' && (
+            <SpeechBubble
+              text={activeReaction.text}
+              isVisible={true}
+              position="left"
+              onComplete={clearReaction}
+            />
+          )}
+        </div>
+        <div className="relative">
+          <CharacterStats
+            character={creature}
+            label="Enemy"
+            tookDamage={creatureTookDamage}
+            imageUrl={creature.imageUrl}
+          />
+          {/* Creature Speech Bubble */}
+          {activeReaction && activeReaction.entity === 'creature' && (
+            <SpeechBubble
+              text={activeReaction.text}
+              isVisible={true}
+              position="right"
+              onComplete={clearReaction}
+            />
+          )}
+        </div>
       </div>
 
       {/* Dice Area */}

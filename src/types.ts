@@ -7,6 +7,15 @@ export type GamePhase =
 
 export type CombatResult = 'player_hit' | 'creature_hit' | 'draw'
 
+export type ReactionType = 'gloat' | 'cry' | 'victory' | 'loss'
+
+export interface Reactions {
+  gloat: string[]
+  cry: string[]
+  victory: string[]
+  loss: string[]
+}
+
 export type ItemType = 'health_potion' | 'luck_potion' | 'provision'
 
 export interface ItemEffect {
@@ -30,6 +39,7 @@ export interface Character {
   currentStamina: number
   luck?: number
   maxLuck?: number
+  reactions?: Reactions
 }
 
 export interface Creature {
@@ -38,6 +48,7 @@ export interface Creature {
   maxStamina: number
   currentStamina: number
   imageUrl?: string
+  reactions?: Reactions
 }
 
 export interface CombatLogEntry {
@@ -47,6 +58,12 @@ export interface CombatLogEntry {
   playerAttackStrength: number
   creatureAttackStrength: number
   result: CombatResult
+}
+
+export interface ActiveReaction {
+  text: string
+  entity: 'player' | 'creature'
+  timestamp: number
 }
 
 export interface GameState {
@@ -73,6 +90,9 @@ export interface GameState {
   // UI state
   lastRoundSummary: string
   showFullLog: boolean
+
+  // Reactions
+  activeReaction: ActiveReaction | null
 }
 
 export interface PresetCharacter {

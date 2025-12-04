@@ -109,7 +109,7 @@ export function CharacterSelectScreen() {
 
   const handleCreatureSelect = (creature: CreatureDefinition) => {
     setSelectedCreature(creature)
-    selectCreature(creature.name, creature.skill, creature.stamina, creature.imageUrl)
+    selectCreature(creature.name, creature.skill, creature.stamina, creature.imageUrl, creature.reactions)
   }
 
   const handleProceedToCharacter = () => {

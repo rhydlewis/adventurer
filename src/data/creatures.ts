@@ -1,3 +1,5 @@
+import type { Reactions } from '../types'
+
 export type CreatureDifficulty = 'easy' | 'medium' | 'hard' | 'legendary'
 
 export interface CreatureDefinition {
@@ -8,6 +10,7 @@ export interface CreatureDefinition {
   imageUrl: string
   difficulty: CreatureDifficulty
   description: string
+  reactions?: Reactions
 }
 
 export const CREATURE_LIBRARY: CreatureDefinition[] = [
@@ -20,6 +23,12 @@ export const CREATURE_LIBRARY: CreatureDefinition[] = [
     imageUrl: '/creatures/goblin.jpg',
     difficulty: 'easy',
     description: 'A small, wicked creature with sharp teeth and a nasty disposition.',
+    reactions: {
+      gloat: ['Hehe! Take that!', 'You weak!', 'Goblin strong!', 'Me hurt you good!'],
+      cry: ['Ow ow ow!', 'That hurt!', 'No fair!', 'Goblin sad now...'],
+      victory: ['Goblin win! Goblin best!', 'Me told you so!', 'Victory dance time!'],
+      loss: ['No no no!', 'This not over!', 'Goblin will remember...', 'Unfair fight!']
+    }
   },
   {
     id: 'giant_rat',
@@ -29,6 +38,12 @@ export const CREATURE_LIBRARY: CreatureDefinition[] = [
     imageUrl: '/creatures/giant-rat.jpg',
     difficulty: 'easy',
     description: 'A diseased rodent of unusual size, with red eyes and matted fur.',
+    reactions: {
+      gloat: ['*Squeak squeak!*', '*Hisses menacingly*', '*Gnashes teeth*', '*Chittering victory*'],
+      cry: ['*Pained squeal*', '*Whimpers*', '*Scurries back*', '*Wounded hiss*'],
+      victory: ['*Triumphant squeaking*', '*Stands over fallen foe*', '*Victory dance*'],
+      loss: ['*Final squeak*', '*Collapses*', '*Defeated whimper*']
+    }
   },
   {
     id: 'zombie',
@@ -49,6 +64,12 @@ export const CREATURE_LIBRARY: CreatureDefinition[] = [
     imageUrl: '/creatures/skeleton.jpg',
     difficulty: 'medium',
     description: 'Animated bones held together by dark magic, wielding ancient weapons.',
+    reactions: {
+      gloat: ['*Bone rattling laughter*', '*Clacks jaw menacingly*', 'Your flesh will join my bones!', '*Skeletal grin*'],
+      cry: ['*Bones crack*', '*Rattles in pain*', 'My ancient bones!', '*Jaw chatters*'],
+      victory: ['Death claims another!', '*Victory rattle*', 'Join the eternal army!', '*Bones dance*'],
+      loss: ['*Bones scatter*', 'I return... to dust...', '*Final rattle*', 'The magic... fades...']
+    }
   },
   {
     id: 'warrior',
@@ -107,6 +128,12 @@ export const CREATURE_LIBRARY: CreatureDefinition[] = [
     imageUrl: '/creatures/dragon.jpg',
     difficulty: 'legendary',
     description: 'An ancient wyrm with scales like armor and breath of fire.',
+    reactions: {
+      gloat: ['BURN, MORTAL!', 'Your flesh sizzles nicely!', 'I am eternal!', 'Feel my ancient wrath!'],
+      cry: ['IMPOSSIBLE!', 'You dare wound me?!', 'My scales... cracked?', 'This cannot be!'],
+      victory: ['I AM SUPREME!', 'Another hero falls before me!', 'Your bones will join my hoard!', 'Bow before the dragon!'],
+      loss: ['This... is not... the end...', 'I will return... stronger...', 'You have not seen the last of me!', 'My kin will avenge me...']
+    }
   },
   {
     id: 'lich',

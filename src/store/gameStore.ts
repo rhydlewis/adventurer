@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { GameState, GamePhase, CombatLogEntry } from '../types'
+import type { GameState, GamePhase, CombatLogEntry, ActiveReaction, ReactionType, Reactions } from '../types'
 import {
   roll2d6,
   calculateAttackStrength,
@@ -10,7 +10,7 @@ import { DEFAULT_INVENTORY, applyItemEffect } from '../utils/items'
 
 interface GameStore extends GameState {
   // Actions
-  selectCreature: (name: string, skill: number, stamina: number, imageUrl?: string) => void
+  selectCreature: (name: string, skill: number, stamina: number, imageUrl?: string, reactions?: Reactions) => void
   createCharacter: (name: string, skill: number, stamina: number) => void
   startBattle: () => void
   rollAttack: () => void
@@ -19,6 +19,8 @@ interface GameStore extends GameState {
   resetGame: () => void
   toggleFullLog: () => void
   useItem: (itemId: string) => void
+  triggerReaction: (entity: 'player' | 'creature', reactionType: ReactionType) => void
+  clearReaction: () => void
 }
 
 // Load creature from URL on initialization
@@ -40,12 +42,13 @@ const initialState: GameState = {
   inventory: [],
   lastRoundSummary: '',
   showFullLog: false,
+  activeReaction: null,
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
   ...initialState,
 
-  selectCreature: (name: string, skill: number, stamina: number, imageUrl?: string) => {
+  selectCreature: (name: string, skill: number, stamina: number, imageUrl?: string, reactions?: Reactions) => {
     set({
       creature: {
         name,
@@ -53,6 +56,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         maxStamina: stamina,
         currentStamina: stamina,
         imageUrl,
+        reactions,
       },
     })
   },
@@ -64,6 +68,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
         skill,
         maxStamina: stamina,
         currentStamina: stamina,
+        reactions: {
+          gloat: ['Take that!', 'Yes!', 'Got you!', 'Victory is mine!'],
+          cry: ['Ouch!', 'That hurt!', 'No!', 'This is bad...'],
+          victory: ['I did it!', 'Victory!', 'Yes! I won!', 'I am victorious!'],
+          loss: ['No...', 'I failed...', 'This cannot be...', 'I will return...']
+        }
       },
     })
   },
@@ -142,11 +152,32 @@ export const useGameStore = create<GameStore>((set, get) => ({
         if (navigator.vibrate) {
           navigator.vibrate([20, 50, 20])
         }
+
+        // Trigger damage reactions (random choice between gloat or cry - always show reaction for testing)
+        const reactionChoice = Math.floor(Math.random() * 2)
+        if (reactionChoice === 0) {
+          // Trigger gloat from attacker (player)
+          get().triggerReaction('player', 'gloat')
+        } else {
+          // Trigger cry from receiver (creature)
+          get().triggerReaction('creature', 'cry')
+        }
+
       } else if (result === 'creature_hit') {
         newPlayerStamina = Math.max(0, newPlayerStamina - 2)
         // Strong haptic for damage taken
         if (navigator.vibrate) {
           navigator.vibrate([20, 50, 20])
+        }
+
+        // Trigger damage reactions (random choice between gloat or cry - always show reaction for testing)
+        const reactionChoice = Math.floor(Math.random() * 2)
+        if (reactionChoice === 0) {
+          // Trigger gloat from attacker (creature)
+          get().triggerReaction('creature', 'gloat')
+        } else {
+          // Trigger cry from receiver (player)
+          get().triggerReaction('player', 'cry')
         }
       }
 
@@ -185,6 +216,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
           currentState.player!.currentStamina <= 0 ||
           currentState.creature.currentStamina <= 0
         ) {
+          // Trigger victory/loss reactions
+          if (currentState.player!.currentStamina <= 0) {
+            // Player lost, creature won
+            get().triggerReaction('creature', 'victory')
+            setTimeout(() => get().triggerReaction('player', 'loss'), 1000)
+          } else {
+            // Creature lost, player won
+            get().triggerReaction('player', 'victory')
+            setTimeout(() => get().triggerReaction('creature', 'loss'), 1000)
+          }
+
           set({ gamePhase: 'BATTLE_END' })
         } else {
           set({ gamePhase: 'BATTLE' })
@@ -232,6 +274,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
         if (navigator.vibrate) {
           navigator.vibrate([20, 50, 20])
         }
+
+        // Trigger damage reactions for backfire (always show reaction for testing)
+        const reactionChoice = Math.floor(Math.random() * 2)
+        if (reactionChoice === 0) {
+          // Trigger gloat from creature (benefited from backfire)
+          get().triggerReaction('creature', 'gloat')
+        } else {
+          // Trigger cry from player (hurt by backfire)
+          get().triggerReaction('player', 'cry')
+        }
+
       } else {
         // Success! Creature takes double damage
         newCreatureStamina = Math.max(0, newCreatureStamina - 4)
@@ -241,6 +294,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
         // Strong haptic for critical hit
         if (navigator.vibrate) {
           navigator.vibrate([20, 50, 20, 50, 20])
+        }
+
+        // Trigger damage reactions for successful special attack (always show reaction for testing)
+        const reactionChoice = Math.floor(Math.random() * 2)
+        if (reactionChoice === 0) {
+          // Trigger gloat from attacker (player)
+          get().triggerReaction('player', 'gloat')
+        } else {
+          // Trigger cry from receiver (creature)
+          get().triggerReaction('creature', 'cry')
         }
       }
 
@@ -279,6 +342,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
           currentState.player!.currentStamina <= 0 ||
           currentState.creature.currentStamina <= 0
         ) {
+          // Trigger victory/loss reactions
+          if (currentState.player!.currentStamina <= 0) {
+            // Player lost, creature won
+            get().triggerReaction('creature', 'victory')
+            setTimeout(() => get().triggerReaction('player', 'loss'), 1000)
+          } else {
+            // Creature lost, player won
+            get().triggerReaction('player', 'victory')
+            setTimeout(() => get().triggerReaction('creature', 'loss'), 1000)
+          }
+
           set({ gamePhase: 'BATTLE_END' })
         } else {
           set({ gamePhase: 'BATTLE' })
@@ -341,5 +415,30 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   toggleFullLog: () => {
     set((state) => ({ showFullLog: !state.showFullLog }))
+  },
+
+  triggerReaction: (entity: 'player' | 'creature', reactionType: ReactionType) => {
+    const state = get()
+    const targetEntity = entity === 'player' ? state.player : state.creature
+
+    if (!targetEntity?.reactions) return
+
+    const reactions = targetEntity.reactions[reactionType]
+    if (!reactions || reactions.length === 0) return
+
+    // Select random reaction
+    const randomReaction = reactions[Math.floor(Math.random() * reactions.length)]
+
+    set({
+      activeReaction: {
+        text: randomReaction,
+        entity,
+        timestamp: Date.now()
+      }
+    })
+  },
+
+  clearReaction: () => {
+    set({ activeReaction: null })
   },
 }))
