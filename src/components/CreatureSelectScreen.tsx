@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { useGameStore } from '../store/gameStore'
 import { CreatureLibrary } from './CreatureLibrary'
 import { CreatureDefinition } from '../data/creatures'
+import { generateShareURL } from '../utils/urlParams'
 
 export function CreatureSelectScreen() {
   const [selectedCreature, setSelectedCreature] = useState<CreatureDefinition | null>(null)
-  
+  const [showCopiedMessage, setShowCopiedMessage] = useState(false)
+
   const selectCreature = useGameStore((state) => state.selectCreature)
   const startBattle = useGameStore((state) => state.startBattle)
   const player = useGameStore((state) => state.player)
@@ -17,13 +19,46 @@ export function CreatureSelectScreen() {
 
   const handleStartBattle = () => {
     if (!selectedCreature) return
-    
+
     // Haptic feedback
     if (navigator.vibrate) {
       navigator.vibrate(10)
     }
-    
+
     startBattle()
+  }
+
+  const handleShareSetup = async () => {
+    if (!player || !selectedCreature) return
+
+    const shareURL = generateShareURL(
+      {
+        name: player.name,
+        skill: player.skill,
+        stamina: player.maxStamina,
+        luck: player.maxLuck,
+        avatar: player.avatar
+      },
+      {
+        name: selectedCreature.name,
+        skill: selectedCreature.skill,
+        stamina: selectedCreature.stamina
+      }
+    )
+
+    try {
+      await navigator.clipboard.writeText(shareURL)
+      setShowCopiedMessage(true)
+
+      // Haptic feedback
+      if (navigator.vibrate) {
+        navigator.vibrate([10, 50, 10])
+      }
+
+      setTimeout(() => setShowCopiedMessage(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy URL:', err)
+    }
   }
 
   return (
@@ -49,6 +84,23 @@ export function CreatureSelectScreen() {
           >
             {selectedCreature ? `Battle ${selectedCreature.name}!` : 'Select a creature'}
           </button>
+
+          {/* Share Setup Button */}
+          {selectedCreature && (
+            <div className="mt-3 relative">
+              <button
+                onClick={handleShareSetup}
+                className="w-full py-2 px-4 rounded-lg font-semibold text-dark-brown bg-amber-200 hover:bg-amber-300 transition-colors border-2 border-amber-400"
+              >
+                🔗 Share Battle Setup
+              </button>
+              {showCopiedMessage && (
+                <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-4 py-2 bg-forest-green text-white rounded-lg shadow-lg text-sm font-semibold whitespace-nowrap animate-slide-up">
+                  ✓ Link copied to clipboard!
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Image Attribution */}
           <p className="text-center text-xs text-dark-brown/50 mt-4">
