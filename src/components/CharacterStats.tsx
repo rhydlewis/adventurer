@@ -4,14 +4,15 @@ interface CharacterStatsProps {
   character: Character | Creature
   label: string
   tookDamage?: boolean
+  wasHealed?: boolean
   imageUrl?: string
 }
 
-export function CharacterStats({ character, label, tookDamage = false, imageUrl }: CharacterStatsProps) {
+export function CharacterStats({ character, label, tookDamage = false, wasHealed = false, imageUrl }: CharacterStatsProps) {
   const staminaPercentage = (character.currentStamina / character.maxStamina) * 100
 
   return (
-    <div className={`bg-white/50 rounded-lg p-4 ${tookDamage ? 'animate-blood-splatter' : ''}`}>
+    <div className={`bg-white/50 rounded-lg p-4 ${tookDamage ? 'animate-blood-splatter' : ''} ${wasHealed ? 'animate-healing-glow' : ''}`}>
       <h3 className="font-cinzel font-bold text-lg text-dark-brown mb-3">
         {label}
       </h3>

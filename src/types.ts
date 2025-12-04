@@ -7,11 +7,29 @@ export type GamePhase =
 
 export type CombatResult = 'player_hit' | 'creature_hit' | 'draw'
 
+export type ItemType = 'health_potion' | 'luck_potion' | 'provision'
+
+export interface ItemEffect {
+  type: 'heal' | 'luck'
+  amount: number
+}
+
+export interface Item {
+  id: string
+  type: ItemType
+  name: string
+  description: string
+  effect: ItemEffect
+  remaining: number
+}
+
 export interface Character {
   name: string
   skill: number
   maxStamina: number
   currentStamina: number
+  luck?: number
+  maxLuck?: number
 }
 
 export interface Creature {
@@ -48,6 +66,9 @@ export interface GameState {
   // Current dice values (for display)
   currentPlayerRoll: number | null
   currentCreatureRoll: number | null
+
+  // Inventory
+  inventory: Item[]
 
   // UI state
   lastRoundSummary: string

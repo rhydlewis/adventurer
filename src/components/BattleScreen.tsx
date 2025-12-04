@@ -2,6 +2,8 @@ import { useGameStore } from '../store/gameStore'
 import { CharacterStats } from './CharacterStats'
 import { Die } from './Die'
 import { CombatLogModal } from './CombatLogModal'
+import { InventoryPanel } from './InventoryPanel'
+import { useState, useEffect } from 'react'
 
 export function BattleScreen() {
   const player = useGameStore((state) => state.player)
@@ -14,6 +16,20 @@ export function BattleScreen() {
   const rollAttack = useGameStore((state) => state.rollAttack)
   const rollSpecialAttack = useGameStore((state) => state.rollSpecialAttack)
   const toggleFullLog = useGameStore((state) => state.toggleFullLog)
+
+  const [playerWasHealed, setPlayerWasHealed] = useState(false)
+  const [previousPlayerStamina, setPreviousPlayerStamina] = useState(player?.currentStamina || 0)
+  const [isInventoryOpen, setIsInventoryOpen] = useState(false)
+
+  // Track stamina changes to trigger healing animation
+  useEffect(() => {
+    if (player && player.currentStamina > previousPlayerStamina) {
+      setPlayerWasHealed(true)
+      const timer = setTimeout(() => setPlayerWasHealed(false), 600)
+      return () => clearTimeout(timer)
+    }
+    setPreviousPlayerStamina(player?.currentStamina || 0)
+  }, [player?.currentStamina, previousPlayerStamina])
 
   if (!player) return null
 
@@ -28,10 +44,22 @@ export function BattleScreen() {
   return (
     <div className="min-h-screen bg-parchment flex flex-col p-4">
       {/* Header */}
-      <div className="text-center mb-6">
+      <div className="flex items-center justify-between mb-6">
+        <div className="w-12"></div> {/* Spacer for centering */}
         <h1 className="text-3xl font-cinzel font-bold text-dark-brown">
           Battle!
         </h1>
+        {/* Inventory Button - Only show during BATTLE phase */}
+        {gamePhase === 'BATTLE' && (
+          <button
+            onClick={() => setIsInventoryOpen(true)}
+            className="w-12 h-12 rounded-full bg-forest-green hover:bg-forest-green/90 text-white flex items-center justify-center shadow-lg transition-colors"
+            title="Open Inventory"
+          >
+            🎒
+          </button>
+        )}
+        {gamePhase !== 'BATTLE' && <div className="w-12"></div>} {/* Spacer when button is hidden */}
       </div>
 
       {/* Stats Grid */}
@@ -40,6 +68,7 @@ export function BattleScreen() {
           character={player}
           label="You"
           tookDamage={playerTookDamage}
+          wasHealed={playerWasHealed}
         />
         <CharacterStats
           character={creature}
@@ -64,6 +93,7 @@ export function BattleScreen() {
           />
         </div>
       </div>
+
 
       {/* Round Result Banner */}
       {lastRoundSummary && (
@@ -102,6 +132,14 @@ export function BattleScreen() {
 
       {/* Combat Log Modal */}
       <CombatLogModal />
+
+      {/* Inventory Popover - Only show during BATTLE phase */}
+      {gamePhase === 'BATTLE' && (
+        <InventoryPanel 
+          isOpen={isInventoryOpen} 
+          onClose={() => setIsInventoryOpen(false)} 
+        />
+      )}
     </div>
   )
 }

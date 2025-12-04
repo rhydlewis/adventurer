@@ -6,6 +6,7 @@ import {
   determineCombatResult,
   parseCreatureFromURL,
 } from '../utils/combat'
+import { DEFAULT_INVENTORY, applyItemEffect } from '../utils/items'
 
 interface GameStore extends GameState {
   // Actions
@@ -17,6 +18,7 @@ interface GameStore extends GameState {
   advancePhase: (phase: GamePhase) => void
   resetGame: () => void
   toggleFullLog: () => void
+  useItem: (itemId: string) => void
 }
 
 // Load creature from URL on initialization
@@ -35,6 +37,7 @@ const initialState: GameState = {
   combatLog: [],
   currentPlayerRoll: null,
   currentCreatureRoll: null,
+  inventory: [],
   lastRoundSummary: '',
   showFullLog: false,
 }
@@ -72,6 +75,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       combatLog: [],
       currentPlayerRoll: null,
       currentCreatureRoll: null,
+      inventory: JSON.parse(JSON.stringify(DEFAULT_INVENTORY)), // Deep copy
       lastRoundSummary: 'BEGIN BATTLE!',
     })
   },
@@ -299,6 +303,39 @@ export const useGameStore = create<GameStore>((set, get) => ({
         maxStamina: creatureData.stamina,
         currentStamina: creatureData.stamina,
       },
+    })
+  },
+
+  useItem: (itemId: string) => {
+    const state = get()
+    if (!state.player || state.gamePhase !== 'BATTLE') return
+
+    const item = state.inventory.find(item => item.id === itemId)
+    if (!item || item.remaining <= 0) return
+
+    // Check if item can be used (e.g., can't heal above max stamina)
+    if (item.effect.type === 'heal' && state.player.currentStamina >= state.player.maxStamina) {
+      return
+    }
+
+    // Apply item effect
+    const updatedPlayer = applyItemEffect(item, state.player)
+
+    // Update inventory - decrement remaining count
+    const updatedInventory = state.inventory.map(invItem =>
+      invItem.id === itemId
+        ? { ...invItem, remaining: invItem.remaining - 1 }
+        : invItem
+    )
+
+    // Haptic feedback for item usage
+    if (navigator.vibrate) {
+      navigator.vibrate([10, 50, 10])
+    }
+
+    set({
+      player: updatedPlayer,
+      inventory: updatedInventory,
     })
   },
 
