@@ -155,6 +155,19 @@ export function CharacterSelectScreen() {
             >
               {selectedCreature ? `Battle ${selectedCreature.name}` : 'Select a creature'}
             </button>
+
+            {/* Image Attribution */}
+            <p className="text-center text-xs text-dark-brown/50 mt-4">
+              Monster art by{' '}
+              <a
+                href="https://mythjourneys.com/gallery/dungeons-and-dragons/free-dnd-monster-art/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-dark-brown/70"
+              >
+                MythJourneys
+              </a>
+            </p>
           </div>
         ) : (
           <>
