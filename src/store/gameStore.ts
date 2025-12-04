@@ -12,6 +12,7 @@ interface GameStore extends GameState {
   // Actions
   selectCreature: (name: string, skill: number, stamina: number, imageUrl?: string, reactions?: Reactions) => void
   createCharacter: (name: string, skill: number, stamina: number) => void
+  selectAvatar: (avatar: string) => void
   startBattle: () => void
   rollAttack: () => void
   rollSpecialAttack: () => void
@@ -75,6 +76,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
           loss: ['No...', 'I failed...', 'This cannot be...', 'I will return...']
         }
       },
+      gamePhase: 'AVATAR_SELECT',
+    })
+  },
+
+  selectAvatar: (avatar: string) => {
+    const state = get()
+    if (!state.player) return
+
+    set({
+      player: {
+        ...state.player,
+        avatar,
+      },
+      gamePhase: 'CREATURE_SELECT',
     })
   },
 

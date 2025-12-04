@@ -73,6 +73,7 @@ export function BattleScreen() {
             label="You"
             tookDamage={playerTookDamage}
             wasHealed={playerWasHealed}
+            imageUrl={player.avatar ? `/characters/${player.avatar}` : undefined}
           />
           {/* Player Speech Bubble */}
           {activeReaction && activeReaction.entity === 'player' && (

@@ -1,5 +1,7 @@
 export type GamePhase =
   | 'CHARACTER_SELECT'
+  | 'AVATAR_SELECT'
+  | 'CREATURE_SELECT'
   | 'BATTLE'
   | 'DICE_ROLLING'
   | 'ROUND_RESULT'
@@ -40,6 +42,7 @@ export interface Character {
   luck?: number
   maxLuck?: number
   reactions?: Reactions
+  avatar?: string
 }
 
 export interface Creature {
