@@ -1,5 +1,5 @@
 import { PRESETS } from '../types'
-import { CREATURE_LIBRARY, type CreatureDefinition } from '../data/creatures'
+import { CREATURE_LIBRARY, type CreatureDefinition, type CreatureDifficulty } from '../data/creatures'
 
 export interface QuickStartParams {
   character: {
@@ -34,15 +34,36 @@ export function parseQuickStartParams(): QuickStartParams | null {
 
   const preset = params.get('preset')
   const creatureParam = params.get('creature')
+  const creatureName = params.get('creatureName')
+  const creatureSkill = params.get('creatureSkill')
+  const creatureStamina = params.get('creatureStamina')
 
-  // Need at least a creature to quick start
-  if (!creatureParam) return null
+  // Need at least a creature (from library or custom)
+  if (!creatureParam && !creatureName) return null
 
-  // Find creature in library
-  const creature = CREATURE_LIBRARY.find(c =>
-    c.id === creatureParam.toLowerCase() ||
-    c.name.toLowerCase() === creatureParam.toLowerCase()
-  )
+  // Parse creature - either from library or custom
+  let creature: CreatureDefinition | null = null
+
+  if (creatureParam) {
+    // Find creature in library
+    creature = CREATURE_LIBRARY.find(c =>
+      c.id === creatureParam.toLowerCase() ||
+      c.name.toLowerCase() === creatureParam.toLowerCase()
+    ) || null
+  }
+
+  // If not found in library, check for custom creature params
+  if (!creature && creatureName && creatureSkill && creatureStamina) {
+    creature = {
+      id: creatureName.toLowerCase().replace(/\s+/g, '-'),
+      name: creatureName,
+      skill: clamp(parseInt(creatureSkill), 1, 12),
+      stamina: clamp(parseInt(creatureStamina), 1, 30),
+      imageUrl: '', // No image for custom creatures
+      difficulty: 'medium' as CreatureDifficulty,
+      description: 'A custom creature'
+    }
+  }
 
   if (!creature) return null
 
