@@ -12,6 +12,7 @@ interface GameStore extends GameState {
   createCharacter: (name: string, skill: number, stamina: number) => void
   startBattle: () => void
   rollAttack: () => void
+  rollSpecialAttack: () => void
   advancePhase: (phase: GamePhase) => void
   resetGame: () => void
   toggleFullLog: () => void
@@ -149,6 +150,100 @@ export const useGameStore = create<GameStore>((set, get) => ({
         combatLog: [logEntry, ...state.combatLog],
         currentPlayerRoll: playerRoll,
         currentCreatureRoll: creatureRoll,
+        lastRoundSummary: summary,
+        player: {
+          ...state.player!,
+          currentStamina: newPlayerStamina,
+        },
+        creature: {
+          ...state.creature,
+          currentStamina: newCreatureStamina,
+        },
+      })
+
+      // Auto-advance after ROUND_RESULT
+      setTimeout(() => {
+        const currentState = get()
+        if (
+          currentState.player!.currentStamina <= 0 ||
+          currentState.creature.currentStamina <= 0
+        ) {
+          set({ gamePhase: 'BATTLE_END' })
+        } else {
+          set({ gamePhase: 'BATTLE' })
+        }
+      }, 1000)
+    }, 1500)
+  },
+
+  rollSpecialAttack: () => {
+    const state = get()
+    if (!state.player || state.gamePhase !== 'BATTLE') return
+
+    // Haptic feedback on button press
+    if (navigator.vibrate) {
+      navigator.vibrate(10)
+    }
+
+    // Transition to DICE_ROLLING and clear previous rolls
+    set({
+      gamePhase: 'DICE_ROLLING',
+      currentPlayerRoll: null,
+      currentCreatureRoll: null
+    })
+
+    // Simulate dice rolling delay
+    setTimeout(() => {
+      // Roll for backfire (1-4 = success 75%, 5-6 = backfire 25%)
+      const backfireRoll = Math.floor(Math.random() * 4) + 1
+      const backfired = backfireRoll > 3
+
+      const newRound = state.currentRound + 1
+
+      let newPlayerStamina = state.player!.currentStamina
+      let newCreatureStamina = state.creature.currentStamina
+      let summary = ''
+      let result: 'player_hit' | 'creature_hit' | 'draw'
+
+      if (backfired) {
+        // Backfire! Player takes damage
+        newPlayerStamina = Math.max(0, newPlayerStamina - 2)
+        summary = `Round ${newRound}: SPECIAL ATTACK BACKFIRED! You take 2 damage!`
+        result = 'creature_hit'
+
+        // Haptic feedback for backfire
+        if (navigator.vibrate) {
+          navigator.vibrate([20, 50, 20])
+        }
+      } else {
+        // Success! Creature takes double damage
+        newCreatureStamina = Math.max(0, newCreatureStamina - 4)
+        summary = `Round ${newRound}: SPECIAL ATTACK! Critical hit! ${state.creature.name} takes 4 damage!`
+        result = 'player_hit'
+
+        // Strong haptic for critical hit
+        if (navigator.vibrate) {
+          navigator.vibrate([20, 50, 20, 50, 20])
+        }
+      }
+
+      // Create log entry (using special values to indicate special attack)
+      const logEntry = {
+        round: newRound,
+        playerRoll: backfired ? -1 : -2, // Special markers for special attack
+        creatureRoll: 0,
+        playerAttackStrength: backfired ? 0 : 999,
+        creatureAttackStrength: backfired ? 999 : 0,
+        result,
+      }
+
+      // Transition to ROUND_RESULT
+      set({
+        gamePhase: 'ROUND_RESULT',
+        currentRound: newRound,
+        combatLog: [logEntry, ...state.combatLog],
+        currentPlayerRoll: backfired ? 0 : 99, // Display indicators
+        currentCreatureRoll: backfired ? 99 : 0,
         lastRoundSummary: summary,
         player: {
           ...state.player!,

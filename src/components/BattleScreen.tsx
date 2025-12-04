@@ -12,6 +12,7 @@ export function BattleScreen() {
   const currentCreatureRoll = useGameStore((state) => state.currentCreatureRoll)
   const combatLog = useGameStore((state) => state.combatLog)
   const rollAttack = useGameStore((state) => state.rollAttack)
+  const rollSpecialAttack = useGameStore((state) => state.rollSpecialAttack)
   const toggleFullLog = useGameStore((state) => state.toggleFullLog)
 
   if (!player) return null
@@ -76,14 +77,27 @@ export function BattleScreen() {
         </button>
       )}
 
-      {/* Attack Button */}
-      <button
-        onClick={rollAttack}
-        disabled={isRolling || showResults}
-        className="w-full py-4 px-6 rounded-lg font-cinzel font-bold text-xl text-white bg-deep-red hover:bg-deep-red/90 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors shadow-lg"
-      >
-        {isRolling || showResults ? 'Rolling...' : 'ATTACK'}
-      </button>
+      {/* Attack Buttons */}
+      <div className="space-y-3">
+        <button
+          onClick={rollAttack}
+          disabled={isRolling || showResults}
+          className="w-full py-4 px-6 rounded-lg font-cinzel font-bold text-xl text-white bg-deep-red hover:bg-deep-red/90 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors shadow-lg"
+        >
+          {isRolling || showResults ? 'Rolling...' : 'ATTACK'}
+        </button>
+
+        <button
+          onClick={rollSpecialAttack}
+          disabled={isRolling || showResults}
+          className="w-full py-3 px-6 rounded-lg font-cinzel font-bold text-lg text-white bg-gradient-to-r from-purple-700 to-pink-600 hover:from-purple-800 hover:to-pink-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors shadow-lg border-2 border-yellow-400"
+        >
+          ⚡ SPECIAL ATTACK ⚡
+        </button>
+        <p className="text-center text-xs text-dark-brown/70">
+          75% chance: 4 damage to enemy | 25% chance: backfire (2 damage to you!)
+        </p>
+      </div>
 
       {/* Combat Log Modal */}
       <CombatLogModal />
