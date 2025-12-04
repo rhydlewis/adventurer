@@ -23,6 +23,7 @@ function App() {
   if (
     gamePhase === 'BATTLE' ||
     gamePhase === 'DICE_ROLLING' ||
+    gamePhase === 'LUCK_TEST' ||
     gamePhase === 'ROUND_RESULT'
   ) {
     return <BattleScreen />

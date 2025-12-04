@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { GameState, GamePhase, CombatLogEntry, ActiveReaction, ReactionType, Reactions } from '../types'
+import type { GameState, GamePhase, CombatLogEntry, CombatResult, ReactionType, Reactions } from '../types'
 import {
   roll2d6,
   calculateAttackStrength,
@@ -7,11 +7,12 @@ import {
   parseCreatureFromURL,
 } from '../utils/combat'
 import { DEFAULT_INVENTORY, applyItemEffect } from '../utils/items'
+import { performLuckTest } from '../utils/luck'
 
 interface GameStore extends GameState {
   // Actions
   selectCreature: (name: string, skill: number, stamina: number, imageUrl?: string, reactions?: Reactions) => void
-  createCharacter: (name: string, skill: number, stamina: number) => void
+  createCharacter: (name: string, skill: number, stamina: number, luck: number) => void
   selectAvatar: (avatar: string) => void
   startBattle: () => void
   rollAttack: () => void
@@ -22,6 +23,8 @@ interface GameStore extends GameState {
   useItem: (itemId: string) => void
   triggerReaction: (entity: 'player' | 'creature', reactionType: ReactionType) => void
   clearReaction: () => void
+  testLuck: () => void
+  skipLuckTest: () => void
 }
 
 // Load creature from URL on initialization
@@ -41,6 +44,7 @@ const initialState: GameState = {
   currentPlayerRoll: null,
   currentCreatureRoll: null,
   inventory: [],
+  pendingLuckTest: null,
   lastRoundSummary: '',
   showFullLog: false,
   activeReaction: null,
@@ -62,13 +66,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
     })
   },
 
-  createCharacter: (name: string, skill: number, stamina: number) => {
+  createCharacter: (name: string, skill: number, stamina: number, luck: number) => {
     set({
       player: {
         name,
         skill,
         maxStamina: stamina,
         currentStamina: stamina,
+        luck,
+        maxLuck: luck,
         reactions: {
           gloat: ['Take that!', 'Too easy!', 'Got you!', 'Victory is mine!'],
           cry: ['Ouch!', 'That hurt!', 'Aargh!', 'This is bad...'],
@@ -157,96 +163,99 @@ export const useGameStore = create<GameStore>((set, get) => ({
         result,
       }
 
-      // Update stamina based on result
-      let newPlayerStamina = state.player!.currentStamina
-      let newCreatureStamina = state.creature.currentStamina
-
+      // Check if damage occurs and trigger luck test
       if (result === 'player_hit') {
-        newCreatureStamina = Math.max(0, newCreatureStamina - 2)
-        // Strong haptic for damage dealt
-        if (navigator.vibrate) {
-          navigator.vibrate([20, 50, 20])
-        }
+        // Player hits creature - apply damage directly (no luck test for dealing damage)
+        const newCreatureStamina = Math.max(0, state.creature.currentStamina - 2)
+        const summary = `Round ${newRound}: You hit for 2 damage!`
 
-        // Trigger damage reactions (random choice between gloat or cry - always show reaction for testing)
-        const reactionChoice = Math.floor(Math.random() * 2)
-        if (reactionChoice === 0) {
-          // Trigger gloat from attacker (player)
-          get().triggerReaction('player', 'gloat')
-        } else {
-          // Trigger cry from receiver (creature)
-          get().triggerReaction('creature', 'cry')
-        }
+        // Trigger gloat reaction
+        get().triggerReaction('player', 'gloat')
 
-      } else if (result === 'creature_hit') {
-        newPlayerStamina = Math.max(0, newPlayerStamina - 2)
-        // Strong haptic for damage taken
-        if (navigator.vibrate) {
-          navigator.vibrate([20, 50, 20])
-        }
+        set({
+          gamePhase: 'ROUND_RESULT',
+          currentRound: newRound,
+          combatLog: [logEntry, ...state.combatLog],
+          currentPlayerRoll: playerRoll,
+          currentCreatureRoll: creatureRoll,
+          lastRoundSummary: summary,
+          creature: {
+            ...state.creature,
+            currentStamina: newCreatureStamina,
+          },
+        })
 
-        // Trigger damage reactions (random choice between gloat or cry - always show reaction for testing)
-        const reactionChoice = Math.floor(Math.random() * 2)
-        if (reactionChoice === 0) {
-          // Trigger gloat from attacker (creature)
-          get().triggerReaction('creature', 'gloat')
-        } else {
-          // Trigger cry from receiver (player)
-          get().triggerReaction('player', 'cry')
-        }
-      }
-
-      // Generate round summary
-      let summary = `Round ${newRound}: Your attack ${playerAttackStrength}, ${state.creature.name}'s attack ${creatureAttackStrength}. `
-      if (result === 'player_hit') {
-        summary += `You win! ${state.creature.name} takes 2 damage.`
-      } else if (result === 'creature_hit') {
-        summary += `${state.creature.name} wins! You take 2 damage.`
-      } else {
-        summary += 'Draw! No damage.'
-      }
-
-      // Transition to ROUND_RESULT
-      set({
-        gamePhase: 'ROUND_RESULT',
-        currentRound: newRound,
-        combatLog: [logEntry, ...state.combatLog],
-        currentPlayerRoll: playerRoll,
-        currentCreatureRoll: creatureRoll,
-        lastRoundSummary: summary,
-        player: {
-          ...state.player!,
-          currentStamina: newPlayerStamina,
-        },
-        creature: {
-          ...state.creature,
-          currentStamina: newCreatureStamina,
-        },
-      })
-
-      // Auto-advance after ROUND_RESULT
-      setTimeout(() => {
-        const currentState = get()
-        if (
-          currentState.player!.currentStamina <= 0 ||
-          currentState.creature.currentStamina <= 0
-        ) {
-          // Trigger victory/loss reactions
-          if (currentState.player!.currentStamina <= 0) {
-            // Player lost, creature won
-            get().triggerReaction('creature', 'victory')
-            setTimeout(() => get().triggerReaction('player', 'loss'), 1000)
+        // Auto-advance after ROUND_RESULT
+        setTimeout(() => {
+          const currentState = get()
+          if (
+            currentState.player!.currentStamina <= 0 ||
+            currentState.creature.currentStamina <= 0
+          ) {
+            // Trigger victory/loss reactions
+            if (currentState.player!.currentStamina <= 0) {
+              get().triggerReaction('creature', 'victory')
+              setTimeout(() => get().triggerReaction('player', 'loss'), 1000)
+            } else {
+              get().triggerReaction('player', 'victory')
+              setTimeout(() => get().triggerReaction('creature', 'loss'), 1000)
+            }
+            set({ gamePhase: 'BATTLE_END' })
           } else {
-            // Creature lost, player won
-            get().triggerReaction('player', 'victory')
-            setTimeout(() => get().triggerReaction('creature', 'loss'), 1000)
+            set({ gamePhase: 'BATTLE' })
           }
+        }, 1000)
+      } else if (result === 'creature_hit') {
+        // Creature hits player - offer luck test to reduce damage
+        set({
+          gamePhase: 'LUCK_TEST',
+          currentRound: newRound,
+          combatLog: [logEntry, ...state.combatLog],
+          currentPlayerRoll: playerRoll,
+          currentCreatureRoll: creatureRoll,
+          pendingLuckTest: {
+            damage: 2,
+            target: 'player',
+            type: 'reduce'
+          }
+        })
+      } else {
+        // Draw - no damage, skip luck test
+        const summary = `Round ${newRound}: Your attack ${playerAttackStrength}, ${state.creature.name}'s attack ${creatureAttackStrength}. Draw! No damage.`
 
-          set({ gamePhase: 'BATTLE_END' })
-        } else {
-          set({ gamePhase: 'BATTLE' })
-        }
-      }, 1000)
+        set({
+          gamePhase: 'ROUND_RESULT',
+          currentRound: newRound,
+          combatLog: [logEntry, ...state.combatLog],
+          currentPlayerRoll: playerRoll,
+          currentCreatureRoll: creatureRoll,
+          lastRoundSummary: summary,
+        })
+
+        // Auto-advance after ROUND_RESULT (only for draw case)
+        setTimeout(() => {
+          const currentState = get()
+          if (
+            currentState.player!.currentStamina <= 0 ||
+            currentState.creature.currentStamina <= 0
+          ) {
+            // Trigger victory/loss reactions
+            if (currentState.player!.currentStamina <= 0) {
+              // Player lost, creature won
+              get().triggerReaction('creature', 'victory')
+              setTimeout(() => get().triggerReaction('player', 'loss'), 1000)
+            } else {
+              // Creature lost, player won
+              get().triggerReaction('player', 'victory')
+              setTimeout(() => get().triggerReaction('creature', 'loss'), 1000)
+            }
+
+            set({ gamePhase: 'BATTLE_END' })
+          } else {
+            set({ gamePhase: 'BATTLE' })
+          }
+        }, 1000)
+      }
     }, 1500)
   },
 
@@ -274,105 +283,91 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
       const newRound = state.currentRound + 1
 
-      let newPlayerStamina = state.player!.currentStamina
-      let newCreatureStamina = state.creature.currentStamina
-      let summary = ''
       let result: 'player_hit' | 'creature_hit' | 'draw'
 
       if (backfired) {
         // Backfire! Player takes damage
-        newPlayerStamina = Math.max(0, newPlayerStamina - 2)
-        summary = `Round ${newRound}: SPECIAL ATTACK BACKFIRED! You take 2 damage!`
         result = 'creature_hit'
 
-        // Haptic feedback for backfire
-        if (navigator.vibrate) {
-          navigator.vibrate([20, 50, 20])
+        // Create log entry (using special values to indicate special attack)
+        const logEntry = {
+          round: newRound,
+          playerRoll: -1, // Special marker for backfired special attack
+          creatureRoll: 0,
+          playerAttackStrength: 0,
+          creatureAttackStrength: 999,
+          result,
         }
 
-        // Trigger damage reactions for backfire (always show reaction for testing)
-        const reactionChoice = Math.floor(Math.random() * 2)
-        if (reactionChoice === 0) {
-          // Trigger gloat from creature (benefited from backfire)
-          get().triggerReaction('creature', 'gloat')
-        } else {
-          // Trigger cry from player (hurt by backfire)
-          get().triggerReaction('player', 'cry')
-        }
+        // Trigger luck test for backfire damage
+        set({
+          gamePhase: 'LUCK_TEST',
+          currentRound: newRound,
+          combatLog: [logEntry, ...state.combatLog],
+          currentPlayerRoll: 0, // Display indicators
+          currentCreatureRoll: 99,
+          pendingLuckTest: {
+            damage: 2,
+            target: 'player',
+            type: 'reduce'
+          }
+        })
 
       } else {
         // Success! Creature takes double damage
-        newCreatureStamina = Math.max(0, newCreatureStamina - 4)
-        summary = `Round ${newRound}: SPECIAL ATTACK! Critical hit! ${state.creature.name} takes 4 damage!`
         result = 'player_hit'
 
-        // Strong haptic for critical hit
-        if (navigator.vibrate) {
-          navigator.vibrate([20, 50, 20, 50, 20])
+        // Create log entry (using special values to indicate special attack)
+        const logEntry = {
+          round: newRound,
+          playerRoll: -2, // Special marker for successful special attack
+          creatureRoll: 0,
+          playerAttackStrength: 999,
+          creatureAttackStrength: 0,
+          result,
         }
 
-        // Trigger damage reactions for successful special attack (always show reaction for testing)
-        const reactionChoice = Math.floor(Math.random() * 2)
-        if (reactionChoice === 0) {
-          // Trigger gloat from attacker (player)
-          get().triggerReaction('player', 'gloat')
-        } else {
-          // Trigger cry from receiver (creature)
-          get().triggerReaction('creature', 'cry')
-        }
-      }
+        // Apply special attack damage directly (no luck test for dealing damage)
+        const newCreatureStamina = Math.max(0, state.creature.currentStamina - 4)
+        const summary = `Round ${newRound}: Special attack hits for 4 damage!`
 
-      // Create log entry (using special values to indicate special attack)
-      const logEntry = {
-        round: newRound,
-        playerRoll: backfired ? -1 : -2, // Special markers for special attack
-        creatureRoll: 0,
-        playerAttackStrength: backfired ? 0 : 999,
-        creatureAttackStrength: backfired ? 999 : 0,
-        result,
-      }
+        // Trigger gloat reaction
+        get().triggerReaction('player', 'gloat')
 
-      // Transition to ROUND_RESULT
-      set({
-        gamePhase: 'ROUND_RESULT',
-        currentRound: newRound,
-        combatLog: [logEntry, ...state.combatLog],
-        currentPlayerRoll: backfired ? 0 : 99, // Display indicators
-        currentCreatureRoll: backfired ? 99 : 0,
-        lastRoundSummary: summary,
-        player: {
-          ...state.player!,
-          currentStamina: newPlayerStamina,
-        },
-        creature: {
-          ...state.creature,
-          currentStamina: newCreatureStamina,
-        },
-      })
+        set({
+          gamePhase: 'ROUND_RESULT',
+          currentRound: newRound,
+          combatLog: [logEntry, ...state.combatLog],
+          currentPlayerRoll: 99, // Display indicators
+          currentCreatureRoll: 0,
+          lastRoundSummary: summary,
+          creature: {
+            ...state.creature,
+            currentStamina: newCreatureStamina,
+          },
+        })
 
-      // Auto-advance after ROUND_RESULT
-      setTimeout(() => {
-        const currentState = get()
-        if (
-          currentState.player!.currentStamina <= 0 ||
-          currentState.creature.currentStamina <= 0
-        ) {
-          // Trigger victory/loss reactions
-          if (currentState.player!.currentStamina <= 0) {
-            // Player lost, creature won
-            get().triggerReaction('creature', 'victory')
-            setTimeout(() => get().triggerReaction('player', 'loss'), 1000)
+        // Auto-advance after ROUND_RESULT
+        setTimeout(() => {
+          const currentState = get()
+          if (
+            currentState.player!.currentStamina <= 0 ||
+            currentState.creature.currentStamina <= 0
+          ) {
+            // Trigger victory/loss reactions
+            if (currentState.player!.currentStamina <= 0) {
+              get().triggerReaction('creature', 'victory')
+              setTimeout(() => get().triggerReaction('player', 'loss'), 1000)
+            } else {
+              get().triggerReaction('player', 'victory')
+              setTimeout(() => get().triggerReaction('creature', 'loss'), 1000)
+            }
+            set({ gamePhase: 'BATTLE_END' })
           } else {
-            // Creature lost, player won
-            get().triggerReaction('player', 'victory')
-            setTimeout(() => get().triggerReaction('creature', 'loss'), 1000)
+            set({ gamePhase: 'BATTLE' })
           }
-
-          set({ gamePhase: 'BATTLE_END' })
-        } else {
-          set({ gamePhase: 'BATTLE' })
-        }
-      }, 1000)
+        }, 1000)
+      }
     }, 1500)
   },
 
@@ -402,8 +397,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const item = state.inventory.find(item => item.id === itemId)
     if (!item || item.remaining <= 0) return
 
-    // Check if item can be used (e.g., can't heal above max stamina)
+    // Check if item can be used (e.g., can't heal above max stamina or restore luck above max)
     if (item.effect.type === 'heal' && state.player.currentStamina >= state.player.maxStamina) {
+      return
+    }
+    if (item.effect.type === 'luck' && state.player.luck >= state.player.maxLuck) {
       return
     }
 
@@ -455,5 +453,196 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   clearReaction: () => {
     set({ activeReaction: null })
+  },
+
+  testLuck: () => {
+    const state = get()
+    if (!state.player || !state.pendingLuckTest || state.gamePhase !== 'LUCK_TEST') return
+
+    const { damage, target, type } = state.pendingLuckTest
+    const luckTestResult = performLuckTest(state.player.luck, damage, type)
+
+    // Haptic feedback for luck test
+    if (navigator.vibrate) {
+      navigator.vibrate(luckTestResult.wasLucky ? [10, 50, 10] : [50, 100, 50])
+    }
+
+    // Apply damage and reduce luck
+    let newPlayerStamina = state.player.currentStamina
+    let newCreatureStamina = state.creature.currentStamina
+    let newPlayerLuck = state.player.luck - 1
+
+    if (target === 'player') {
+      newPlayerStamina = Math.max(0, newPlayerStamina - luckTestResult.modifiedDamage)
+    } else {
+      newCreatureStamina = Math.max(0, newCreatureStamina - luckTestResult.modifiedDamage)
+    }
+
+    // Trigger reactions based on luck test result and context
+    if (target === 'player') {
+      // Testing luck to reduce damage taken - only react if unlucky (taking MORE damage)
+      if (!luckTestResult.wasLucky) {
+        get().triggerReaction('player', 'cry')
+      }
+      // If lucky, no reaction - you still got hit, just less
+    } else {
+      // Testing luck to increase damage dealt - gloat if lucky
+      if (luckTestResult.wasLucky) {
+        get().triggerReaction('player', 'gloat')
+      }
+      // If unlucky, no strong reaction needed
+    }
+
+    const summary = target === 'player'
+      ? `You took ${luckTestResult.modifiedDamage} damage (${luckTestResult.wasLucky ? 'LUCKY!' : 'UNLUCKY!'})`
+      : `Enemy took ${luckTestResult.modifiedDamage} damage (${luckTestResult.wasLucky ? 'LUCKY!' : 'UNLUCKY!'})`
+
+    // Add luck test entry to combat log
+    const luckLogEntry = {
+      round: state.currentRound,
+      playerRoll: luckTestResult.roll,
+      creatureRoll: 0,
+      playerAttackStrength: 0,
+      creatureAttackStrength: 0,
+      result: luckTestResult.wasLucky ? 'player_hit' : 'creature_hit' as CombatResult,
+      isLuckTest: true,
+      luckRoll: luckTestResult.roll,
+      wasLucky: luckTestResult.wasLucky,
+      originalDamage: damage,
+      modifiedDamage: luckTestResult.modifiedDamage,
+      target: target,
+      skipped: false,
+    }
+
+    set({
+      gamePhase: 'ROUND_RESULT',
+      pendingLuckTest: null,
+      lastRoundSummary: summary,
+      combatLog: [luckLogEntry, ...state.combatLog],
+      player: {
+        ...state.player,
+        currentStamina: newPlayerStamina,
+        luck: Math.max(0, newPlayerLuck),
+      },
+      creature: {
+        ...state.creature,
+        currentStamina: newCreatureStamina,
+      },
+    })
+
+    // Auto-advance after ROUND_RESULT
+    // Increased delay to allow luck test reactions to be seen
+    setTimeout(() => {
+      const currentState = get()
+      if (
+        currentState.player!.currentStamina <= 0 ||
+        currentState.creature.currentStamina <= 0
+      ) {
+        // Trigger victory/loss reactions with additional delay to avoid overriding luck reactions
+        if (currentState.player!.currentStamina <= 0) {
+          get().triggerReaction('creature', 'victory')
+          setTimeout(() => get().triggerReaction('player', 'loss'), 1000)
+        } else {
+          get().triggerReaction('player', 'victory')
+          setTimeout(() => get().triggerReaction('creature', 'loss'), 1000)
+        }
+        set({ gamePhase: 'BATTLE_END' })
+      } else {
+        set({ gamePhase: 'BATTLE' })
+      }
+    }, 2500)
+  },
+
+  skipLuckTest: () => {
+    const state = get()
+    if (!state.player || !state.pendingLuckTest || state.gamePhase !== 'LUCK_TEST') return
+
+    const { damage, target } = state.pendingLuckTest
+
+    // Apply original damage without modification
+    let newPlayerStamina = state.player.currentStamina
+    let newCreatureStamina = state.creature.currentStamina
+
+    if (target === 'player') {
+      newPlayerStamina = Math.max(0, newPlayerStamina - damage)
+      // Trigger damage reactions
+      const reactionChoice = Math.floor(Math.random() * 2)
+      if (reactionChoice === 0) {
+        get().triggerReaction('creature', 'gloat')
+      } else {
+        get().triggerReaction('player', 'cry')
+      }
+    } else {
+      newCreatureStamina = Math.max(0, newCreatureStamina - damage)
+      // Trigger damage reactions
+      const reactionChoice = Math.floor(Math.random() * 2)
+      if (reactionChoice === 0) {
+        get().triggerReaction('player', 'gloat')
+      } else {
+        get().triggerReaction('creature', 'cry')
+      }
+    }
+
+    // Haptic feedback for damage
+    if (navigator.vibrate) {
+      navigator.vibrate([20, 50, 20])
+    }
+
+    const summary = target === 'player'
+      ? `You took ${damage} damage`
+      : `Enemy took ${damage} damage`
+
+    // Add luck test skipped entry to combat log
+    const luckLogEntry = {
+      round: state.currentRound,
+      playerRoll: 0,
+      creatureRoll: 0,
+      playerAttackStrength: 0,
+      creatureAttackStrength: 0,
+      result: 'draw' as CombatResult,
+      isLuckTest: true,
+      luckRoll: 0,
+      wasLucky: false,
+      originalDamage: damage,
+      modifiedDamage: damage,
+      target: target,
+      skipped: true,
+    }
+
+    set({
+      gamePhase: 'ROUND_RESULT',
+      pendingLuckTest: null,
+      lastRoundSummary: summary,
+      combatLog: [luckLogEntry, ...state.combatLog],
+      player: {
+        ...state.player,
+        currentStamina: newPlayerStamina,
+      },
+      creature: {
+        ...state.creature,
+        currentStamina: newCreatureStamina,
+      },
+    })
+
+    // Auto-advance after ROUND_RESULT
+    setTimeout(() => {
+      const currentState = get()
+      if (
+        currentState.player!.currentStamina <= 0 ||
+        currentState.creature.currentStamina <= 0
+      ) {
+        // Trigger victory/loss reactions
+        if (currentState.player!.currentStamina <= 0) {
+          get().triggerReaction('creature', 'victory')
+          setTimeout(() => get().triggerReaction('player', 'loss'), 1000)
+        } else {
+          get().triggerReaction('player', 'victory')
+          setTimeout(() => get().triggerReaction('creature', 'loss'), 1000)
+        }
+        set({ gamePhase: 'BATTLE_END' })
+      } else {
+        set({ gamePhase: 'BATTLE' })
+      }
+    }, 1000)
   },
 }))

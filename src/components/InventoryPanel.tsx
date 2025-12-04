@@ -35,6 +35,11 @@ export function InventoryPanel({ isOpen, onClose }: InventoryPanelProps) {
       return false
     }
 
+    // Can't restore luck above max luck
+    if (item.effect.type === 'luck' && player.luck >= player.maxLuck) {
+      return false
+    }
+
     return true
   }
 

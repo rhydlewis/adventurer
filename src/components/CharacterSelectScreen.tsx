@@ -6,6 +6,7 @@ import { rollDie, roll2d6 } from '../utils/combat'
 interface RolledStats {
   skill: number
   stamina: number
+  luck: number
 }
 
 export function CharacterSelectScreen() {
@@ -25,7 +26,7 @@ export function CharacterSelectScreen() {
     }
 
     const preset = PRESETS[presetKey]
-    createCharacter(playerName.trim(), preset.skill, preset.stamina)
+    createCharacter(playerName.trim(), preset.skill, preset.stamina, preset.luck)
   }
 
   const handleRollYourOwn = () => {
@@ -48,10 +49,12 @@ export function CharacterSelectScreen() {
     setTimeout(() => {
       const skillRoll = rollDie()
       const staminaRoll = roll2d6()
+      const luckRoll = rollDie()
 
       setRolledStats({
         skill: skillRoll + 6,
         stamina: staminaRoll + 12,
+        luck: luckRoll + 6,
       })
       setIsRolling(false)
 
@@ -70,7 +73,7 @@ export function CharacterSelectScreen() {
       navigator.vibrate(10)
     }
 
-    createCharacter(playerName.trim(), rolledStats.skill, rolledStats.stamina)
+    createCharacter(playerName.trim(), rolledStats.skill, rolledStats.stamina, rolledStats.luck)
     setShowRollModal(false)
   }
 
@@ -147,7 +150,7 @@ export function CharacterSelectScreen() {
               disabled={!isNameValid}
               className="w-full py-3 px-4 rounded-lg font-semibold text-white bg-deep-red hover:bg-deep-red/90 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
-              🗡️ WARRIOR<br/>(SKILL: 10, STAMINA: 20)
+              🗡️ WARRIOR<br/>(SKILL: 10, STAMINA: 20, LUCK: 9)
             </button>
 
             <button
@@ -155,7 +158,7 @@ export function CharacterSelectScreen() {
               disabled={!isNameValid}
               className="w-full py-3 px-4 rounded-lg font-semibold text-white bg-deep-red hover:bg-deep-red/90 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
-              🪄 WIZARD<br/>(SKILL: 9, STAMINA: 18)
+              🪄 WIZARD<br/>(SKILL: 9, STAMINA: 18, LUCK: 11)
             </button>
 
             <button
@@ -163,7 +166,7 @@ export function CharacterSelectScreen() {
               disabled={!isNameValid}
               className="w-full py-3 px-4 rounded-lg font-semibold text-white bg-deep-red hover:bg-deep-red/90 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
-              🔪 THIEF<br/>(SKILL: 8, STAMINA: 24)
+              🔪 THIEF<br/>(SKILL: 8, STAMINA: 24, LUCK: 8)
             </button>
 
             <button
@@ -204,6 +207,13 @@ export function CharacterSelectScreen() {
                   <div className="text-sm text-dark-brown/70 mb-1">STAMINA</div>
                   <div className="text-3xl font-bold text-dark-brown">
                     {rolledStats.stamina}
+                  </div>
+                </div>
+
+                <div className="bg-white/50 rounded-lg p-4 text-center">
+                  <div className="text-sm text-dark-brown/70 mb-1">LUCK</div>
+                  <div className="text-3xl font-bold text-yellow-600">
+                    {rolledStats.luck}
                   </div>
                 </div>
 

@@ -4,6 +4,7 @@ import { Die } from './Die'
 import { CombatLogModal } from './CombatLogModal'
 import { InventoryPanel } from './InventoryPanel'
 import { SpeechBubble } from './SpeechBubble'
+import { LuckTestModal } from './LuckTestModal'
 import { useState, useEffect } from 'react'
 
 export function BattleScreen() {
@@ -158,6 +159,9 @@ export function BattleScreen() {
 
       {/* Combat Log Modal */}
       <CombatLogModal />
+
+      {/* Luck Test Modal */}
+      <LuckTestModal />
 
       {/* Inventory Popover - Only show during BATTLE phase */}
       {gamePhase === 'BATTLE' && (

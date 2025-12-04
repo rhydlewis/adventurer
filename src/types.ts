@@ -4,6 +4,7 @@ export type GamePhase =
   | 'CREATURE_SELECT'
   | 'BATTLE'
   | 'DICE_ROLLING'
+  | 'LUCK_TEST'
   | 'ROUND_RESULT'
   | 'BATTLE_END'
 
@@ -39,8 +40,8 @@ export interface Character {
   skill: number
   maxStamina: number
   currentStamina: number
-  luck?: number
-  maxLuck?: number
+  luck: number
+  maxLuck: number
   reactions?: Reactions
   avatar?: string
 }
@@ -61,12 +62,26 @@ export interface CombatLogEntry {
   playerAttackStrength: number
   creatureAttackStrength: number
   result: CombatResult
+  // Optional luck test fields
+  isLuckTest?: boolean
+  luckRoll?: number
+  wasLucky?: boolean
+  originalDamage?: number
+  modifiedDamage?: number
+  target?: 'player' | 'creature'
+  skipped?: boolean
 }
 
 export interface ActiveReaction {
   text: string
   entity: 'player' | 'creature'
   timestamp: number
+}
+
+export interface PendingLuckTest {
+  damage: number
+  target: 'player' | 'creature'
+  type: 'reduce' | 'increase'
 }
 
 export interface GameState {
@@ -90,6 +105,9 @@ export interface GameState {
   // Inventory
   inventory: Item[]
 
+  // Luck test
+  pendingLuckTest: PendingLuckTest | null
+
   // UI state
   lastRoundSummary: string
   showFullLog: boolean
@@ -101,10 +119,11 @@ export interface GameState {
 export interface PresetCharacter {
   skill: number
   stamina: number
+  luck: number
 }
 
 export const PRESETS: Record<string, PresetCharacter> = {
-  warrior: { skill: 10, stamina: 20 },
-  rogue: { skill: 9, stamina: 18 },
-  barbarian: { skill: 8, stamina: 24 },
+  warrior: { skill: 10, stamina: 20, luck: 9 },
+  rogue: { skill: 9, stamina: 18, luck: 11 },
+  barbarian: { skill: 8, stamina: 24, luck: 8 },
 }

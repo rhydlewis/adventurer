@@ -51,6 +51,22 @@ export function CharacterStats({ character, label, tookDamage = false, wasHealed
             />
           </div>
         </div>
+        {/* Luck stat - only show for player characters */}
+        {'luck' in character && character.luck !== undefined && (
+          <div>
+            <div className="text-sm text-dark-brown/70">LUCK</div>
+            <div className="text-2xl font-bold text-yellow-600">
+              {character.luck} / {character.maxLuck}
+            </div>
+            {/* Luck bar */}
+            <div className="mt-1 h-2 bg-dark-brown/20 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-yellow-500 transition-all duration-300"
+                style={{ width: `${(character.luck / character.maxLuck) * 100}%` }}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

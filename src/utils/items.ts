@@ -21,7 +21,7 @@ export const DEFAULT_INVENTORY: Item[] = [
     id: 'luck_potion_1',
     type: 'luck_potion',
     name: 'Luck Potion',
-    description: 'Restores LUCK',
+    description: 'Restores 1 LUCK',
     effect: { type: 'luck', amount: 1 },
     remaining: 1
   }
