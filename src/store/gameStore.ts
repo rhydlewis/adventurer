@@ -69,8 +69,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         maxStamina: stamina,
         currentStamina: stamina,
         reactions: {
-          gloat: ['Take that!', 'Yes!', 'Got you!', 'Victory is mine!'],
-          cry: ['Ouch!', 'That hurt!', 'No!', 'This is bad...'],
+          gloat: ['Take that!', 'Too easy!', 'Got you!', 'Victory is mine!'],
+          cry: ['Ouch!', 'That hurt!', 'Aargh!', 'This is bad...'],
           victory: ['I did it!', 'Victory!', 'Yes! I won!', 'I am victorious!'],
           loss: ['No...', 'I failed...', 'This cannot be...', 'I will return...']
         }
