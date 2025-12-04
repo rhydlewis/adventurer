@@ -3,13 +3,14 @@ import type { Character, Creature } from '../types'
 interface CharacterStatsProps {
   character: Character | Creature
   label: string
+  tookDamage?: boolean
 }
 
-export function CharacterStats({ character, label }: CharacterStatsProps) {
+export function CharacterStats({ character, label, tookDamage = false }: CharacterStatsProps) {
   const staminaPercentage = (character.currentStamina / character.maxStamina) * 100
 
   return (
-    <div className="bg-white/50 rounded-lg p-4">
+    <div className={`bg-white/50 rounded-lg p-4 ${tookDamage ? 'animate-blood-splatter' : ''}`}>
       <h3 className="font-cinzel font-bold text-lg text-dark-brown mb-3">
         {label}
       </h3>

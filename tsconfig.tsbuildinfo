@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/types.ts","./src/vite-env.d.ts","./src/components/battleendscreen.tsx","./src/components/battlescreen.tsx","./src/components/characterselectscreen.tsx","./src/components/characterstats.tsx","./src/components/combatlogmodal.tsx","./src/components/die.tsx","./src/store/gamestore.ts","./src/utils/combat.ts"],"version":"5.9.3"}

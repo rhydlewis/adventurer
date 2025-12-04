@@ -84,19 +84,37 @@ export function CharacterSelectScreen() {
 
   const isNameValid = playerName.trim().length > 0
 
+  const presetNames = [
+    'Bjorn Smashface',
+    'Krondor the Wise',
+    'Lyra Flick-knife',
+    'Nigel Forktongue',
+    'KRAZZMATAZZZ',
+    'Enid the Destroyer',
+    'Betty Battleborn'
+  ]
+
+  const handlePresetName = (name: string) => {
+    setPlayerName(name)
+    // Haptic feedback
+    if (navigator.vibrate) {
+      navigator.vibrate(10)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-parchment flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <h1 className="text-4xl md:text-5xl font-cinzel font-bold text-dark-brown text-center mb-2">
-          Fighting Fantasy
+          Advent-turer
         </h1>
         <h2 className="text-xl font-cinzel text-dark-brown text-center mb-8">
-          Battle Simulator
+          Battleground
         </h2>
 
         <div className="bg-white/50 rounded-lg p-6 shadow-lg mb-6">
           <p className="text-dark-brown text-center mb-4">
-            You will battle: <span className="font-bold">{creature.name}</span>
+            You will fight: <span className="font-bold">{creature.name}</span>
           </p>
           <p className="text-dark-brown/70 text-center text-sm">
             SKILL: {creature.skill} | STAMINA: {creature.maxStamina}
@@ -108,11 +126,25 @@ export function CharacterSelectScreen() {
             <span className="text-dark-brown font-semibold mb-2 block">
               Your Name:
             </span>
+
+            {/* Preset Names */}
+            <div className="flex flex-wrap gap-2 mb-3">
+              {presetNames.map((name) => (
+                <button
+                  key={name}
+                  onClick={() => handlePresetName(name)}
+                  className="px-3 py-1 text-sm rounded-full bg-dark-brown/10 text-dark-brown hover:bg-dark-brown/20 transition-colors border border-dark-brown/20"
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
+
             <input
               type="text"
               value={playerName}
               onChange={(e) => setPlayerName(e.target.value)}
-              placeholder="Enter your name"
+              placeholder="Or enter your own name"
               className="w-full px-4 py-3 rounded-lg border-2 border-dark-brown/20 focus:border-dark-brown focus:outline-none text-dark-brown"
               maxLength={20}
             />
@@ -128,7 +160,7 @@ export function CharacterSelectScreen() {
               disabled={!isNameValid}
               className="w-full py-3 px-4 rounded-lg font-semibold text-white bg-deep-red hover:bg-deep-red/90 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
-              Warrior (SKILL: 10, STAMINA: 20)
+              🗡️ WARRIOR<br/>(SKILL: 10, STAMINA: 20)
             </button>
 
             <button
@@ -136,7 +168,7 @@ export function CharacterSelectScreen() {
               disabled={!isNameValid}
               className="w-full py-3 px-4 rounded-lg font-semibold text-white bg-deep-red hover:bg-deep-red/90 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
-              Rogue (SKILL: 9, STAMINA: 18)
+              🪄 WIZARD<br/>(SKILL: 9, STAMINA: 18)
             </button>
 
             <button
@@ -144,7 +176,7 @@ export function CharacterSelectScreen() {
               disabled={!isNameValid}
               className="w-full py-3 px-4 rounded-lg font-semibold text-white bg-deep-red hover:bg-deep-red/90 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
-              Barbarian (SKILL: 8, STAMINA: 24)
+              🔪 THIEF<br/>(SKILL: 8, STAMINA: 24)
             </button>
 
             <button

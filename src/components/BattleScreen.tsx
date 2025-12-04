@@ -10,6 +10,7 @@ export function BattleScreen() {
   const lastRoundSummary = useGameStore((state) => state.lastRoundSummary)
   const currentPlayerRoll = useGameStore((state) => state.currentPlayerRoll)
   const currentCreatureRoll = useGameStore((state) => state.currentCreatureRoll)
+  const combatLog = useGameStore((state) => state.combatLog)
   const rollAttack = useGameStore((state) => state.rollAttack)
   const toggleFullLog = useGameStore((state) => state.toggleFullLog)
 
@@ -17,6 +18,11 @@ export function BattleScreen() {
 
   const isRolling = gamePhase === 'DICE_ROLLING'
   const showResults = gamePhase === 'ROUND_RESULT'
+
+  // Check if damage was taken in the most recent round
+  const lastRound = combatLog[0]
+  const playerTookDamage = showResults && lastRound?.result === 'creature_hit'
+  const creatureTookDamage = showResults && lastRound?.result === 'player_hit'
 
   return (
     <div className="min-h-screen bg-parchment flex flex-col p-4">
@@ -29,8 +35,16 @@ export function BattleScreen() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-4 mb-6">
-        <CharacterStats character={player} label="You" />
-        <CharacterStats character={creature} label="Enemy" />
+        <CharacterStats
+          character={player}
+          label="You"
+          tookDamage={playerTookDamage}
+        />
+        <CharacterStats
+          character={creature}
+          label="Enemy"
+          tookDamage={creatureTookDamage}
+        />
       </div>
 
       {/* Dice Area */}
