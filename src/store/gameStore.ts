@@ -76,11 +76,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
         luck,
         maxLuck: luck,
         reactions: {
-          gloat: ['Take that!', 'Too easy!', 'Got you!', 'Victory is mine!'],
-          cry: ['Ouch!', 'That hurt!', 'Aargh!', 'This is bad...'],
-          victory: ['I did it!', 'Victory!', 'Yes! I won!', 'I am victorious!'],
-          loss: ['No...', 'I failed...', 'This cannot be...', 'I will return...']
-        }
+          gloat: ['Take that!', 'Too easy!', 'Mwah ha ha!', 'I smash you up!', 'Hah!', 'Surrender!', 'I triumph!',
+            'Defeat is inevitable!'],
+          cry: ['Ouch!', 'That hurt!', 'Aargh!', 'This is bad...', 'Ouch!', 'My wounds!', 'I am injured!',
+            'This is the WORST!'],
+          victory: ['I did it!', 'Victory!', 'Yes! I won!', 'I am victorious!', 'Victory is mine!',
+            'I have prevailed!', 'Triumph!', 'I stand undeafted!'],
+          loss: ['No...', 'I failed...', 'This cannot be...', 'I will return...', 'Defeat...', 'I am beaten...',
+            'This is not over...', 'I shall rise again!']          }
       },
       gamePhase: 'AVATAR_SELECT',
     })
@@ -277,9 +280,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     // Simulate dice rolling delay
     setTimeout(() => {
-      // Roll for backfire (1-4 = success 75%, 5-6 = backfire 25%)
-      const backfireRoll = Math.floor(Math.random() * 4) + 1
-      const backfired = backfireRoll > 3
+      // Roll for backfire (1-4 = success 67%, 5-6 = backfire 33%)
+      const backfireRoll = Math.floor(Math.random() * 6) + 1
+      const backfired = backfireRoll > 4
 
       const newRound = state.currentRound + 1
 
@@ -504,7 +507,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       creatureRoll: 0,
       playerAttackStrength: 0,
       creatureAttackStrength: 0,
-      result: luckTestResult.wasLucky ? 'player_hit' : 'creature_hit' as CombatResult,
+      result: target === 'player' ? 'creature_hit' : 'player_hit' as CombatResult,
       isLuckTest: true,
       luckRoll: luckTestResult.roll,
       wasLucky: luckTestResult.wasLucky,

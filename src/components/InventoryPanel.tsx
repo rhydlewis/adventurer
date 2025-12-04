@@ -18,8 +18,8 @@ export function InventoryPanel({ isOpen, onClose }: InventoryPanelProps) {
     switch (itemType) {
       case 'health_potion':
         return '🧪'
-      case 'provision':
-        return '🍖'
+      case 'skill_potion':
+        return '⚔️'
       case 'luck_potion':
         return '🍀'
       default:

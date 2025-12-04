@@ -19,10 +19,10 @@ export interface Reactions {
   loss: string[]
 }
 
-export type ItemType = 'health_potion' | 'luck_potion' | 'provision'
+export type ItemType = 'health_potion' | 'luck_potion' | 'skill_potion'
 
 export interface ItemEffect {
-  type: 'heal' | 'luck'
+  type: 'heal' | 'luck' | 'skill'
   amount: number
 }
 

@@ -4,23 +4,23 @@ export const DEFAULT_INVENTORY: Item[] = [
   {
     id: 'health_potion_1',
     type: 'health_potion',
-    name: 'Health Potion',
+    name: 'Healing Draught',
     description: 'Restores 4 STAMINA',
     effect: { type: 'heal', amount: 4 },
     remaining: 2
   },
   {
-    id: 'provision_1',
-    type: 'provision',
-    name: 'Provision',
-    description: 'Restores 4 STAMINA',
-    effect: { type: 'heal', amount: 4 },
-    remaining: 2
+    id: 'skill_potion_1',
+    type: 'skill_potion',
+    name: 'Draught of Proficiency',
+    description: 'Increases SKILL by 3',
+    effect: { type: 'skill', amount: 3 },
+    remaining: 1
   },
   {
     id: 'luck_potion_1',
     type: 'luck_potion',
-    name: 'Luck Potion',
+    name: 'Draught of Destiny',
     description: 'Restores 1 LUCK',
     effect: { type: 'luck', amount: 1 },
     remaining: 1
@@ -44,6 +44,9 @@ export function applyItemEffect(item: Item, character: Character): Character {
           character.maxLuck || 1
         )
       }
+      break
+    case 'skill':
+      updatedCharacter.skill = character.skill + item.effect.amount
       break
   }
 

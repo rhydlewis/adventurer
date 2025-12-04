@@ -153,7 +153,7 @@ export function BattleScreen() {
           ⚡ SPECIAL ATTACK ⚡
         </button>
         <p className="text-center text-xs text-dark-brown/70">
-          75% chance: 4 damage to enemy | 25% chance: backfire (2 damage to you!)
+          67% chance: 4 damage to enemy | 33% chance: backfire (2 damage to you!)
         </p>
       </div>
 
