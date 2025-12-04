@@ -20,8 +20,22 @@ export function CombatLogModal() {
     }
   }
 
-  const getResultText = (result: string) => {
-    switch (result) {
+  const getResultText = (entry: any) => {
+    // Check if this was a special attack
+    const isSpecialAttack = entry.playerAttackStrength === 999 || entry.playerAttackStrength === 0
+
+    if (isSpecialAttack) {
+      if (entry.result === 'player_hit') {
+        // Successful special attack
+        return `⚡ SPECIAL ATTACK! Critical hit! ${creature.name} takes 4 damage.`
+      } else {
+        // Backfired special attack
+        return `⚡ SPECIAL ATTACK BACKFIRED! You take 2 damage!`
+      }
+    }
+
+    // Normal attack
+    switch (entry.result) {
       case 'player_hit':
         return `You win! ${creature.name} takes 2 damage.`
       case 'creature_hit':
@@ -71,14 +85,19 @@ export function CombatLogModal() {
                 <div className="font-bold text-dark-brown mb-2">
                   Round {entry.round}
                 </div>
-                <div className="text-sm text-dark-brown mb-1">
-                  {player.name}: Attack Strength {entry.playerAttackStrength}
-                </div>
-                <div className="text-sm text-dark-brown mb-2">
-                  {creature.name}: Attack Strength {entry.creatureAttackStrength}
-                </div>
+                {/* Only show attack strengths for normal attacks */}
+                {entry.playerAttackStrength !== 999 && entry.playerAttackStrength !== 0 && (
+                  <>
+                    <div className="text-sm text-dark-brown mb-1">
+                      {player.name}: Attack Strength {entry.playerAttackStrength}
+                    </div>
+                    <div className="text-sm text-dark-brown mb-2">
+                      {creature.name}: Attack Strength {entry.creatureAttackStrength}
+                    </div>
+                  </>
+                )}
                 <div className="text-sm font-semibold text-dark-brown">
-                  → {getResultText(entry.result)}
+                  → {getResultText(entry)}
                 </div>
               </div>
             ))
