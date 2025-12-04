@@ -9,8 +9,19 @@ export function CombatLogModal() {
 
   if (!showFullLog || !player) return null
 
-  const getResultColor = (result: string) => {
-    switch (result) {
+  const getResultColor = (entry: any) => {
+    // Luck tests get gold/yellow styling
+    if (entry.isLuckTest) {
+      if (entry.skipped) {
+        return 'bg-gray-200 border-gray-400'
+      }
+      return entry.wasLucky
+        ? 'bg-yellow-100 border-yellow-500'
+        : 'bg-orange-100 border-orange-500'
+    }
+
+    // Regular combat
+    switch (entry.result) {
       case 'player_hit':
         return 'bg-forest-green/20 border-forest-green'
       case 'creature_hit':
@@ -21,6 +32,26 @@ export function CombatLogModal() {
   }
 
   const getResultText = (entry: any) => {
+    // Check if this is a luck test
+    if (entry.isLuckTest) {
+      if (entry.skipped) {
+        return entry.target === 'player'
+          ? `Luck test declined. You took ${entry.originalDamage} damage.`
+          : `Luck test declined. ${creature.name} took ${entry.originalDamage} damage.`
+      }
+
+      const luckText = entry.wasLucky ? '✨ LUCKY!' : '💥 UNLUCKY!'
+      const damageChange = entry.originalDamage !== entry.modifiedDamage
+        ? ` (${entry.originalDamage} → ${entry.modifiedDamage})`
+        : ''
+
+      if (entry.target === 'player') {
+        return `🍀 Luck Test: ${luckText} You took ${entry.modifiedDamage} damage${damageChange}`
+      } else {
+        return `🍀 Luck Test: ${luckText} ${creature.name} took ${entry.modifiedDamage} damage${damageChange}`
+      }
+    }
+
     // Check if this was a special attack
     const isSpecialAttack = entry.playerAttackStrength === 999 || entry.playerAttackStrength === 0
 
@@ -75,18 +106,24 @@ export function CombatLogModal() {
               No combat history yet
             </p>
           ) : (
-            combatLog.map((entry) => (
+            combatLog.map((entry, index) => (
               <div
-                key={entry.round}
-                className={`p-4 rounded-lg border-2 ${getResultColor(
-                  entry.result
-                )}`}
+                key={`${entry.round}-${index}`}
+                className={`p-4 rounded-lg border-2 ${getResultColor(entry)}`}
               >
                 <div className="font-bold text-dark-brown mb-2">
                   Round {entry.round}
                 </div>
+
+                {/* Luck test shows roll and luck value */}
+                {entry.isLuckTest && !entry.skipped && (
+                  <div className="text-sm text-dark-brown mb-2">
+                    Luck Roll: {entry.luckRoll} (needed ≤ {player.luck + 1})
+                  </div>
+                )}
+
                 {/* Only show attack strengths for normal attacks */}
-                {entry.playerAttackStrength !== 999 && entry.playerAttackStrength !== 0 && (
+                {!entry.isLuckTest && entry.playerAttackStrength !== 999 && entry.playerAttackStrength !== 0 && (
                   <>
                     <div className="text-sm text-dark-brown mb-1">
                       {player.name}: Attack Strength {entry.playerAttackStrength}
@@ -96,6 +133,7 @@ export function CombatLogModal() {
                     </div>
                   </>
                 )}
+
                 <div className="text-sm font-semibold text-dark-brown">
                   → {getResultText(entry)}
                 </div>
