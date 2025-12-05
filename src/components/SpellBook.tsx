@@ -28,7 +28,7 @@ export function SpellBook() {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-parchment rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-2xl">
+      <div className="bg-amber-50 rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-2xl border-4 border-amber-900">
         <h2 className="text-3xl font-cinzel font-bold text-dark-brown text-center mb-6">
           Spell Book
         </h2>
