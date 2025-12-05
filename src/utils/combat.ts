@@ -27,9 +27,9 @@ export function determineCombatResult(
   creatureStrength: number
 ): 'player_hit' | 'creature_hit' | 'draw' {
   if (playerStrength > creatureStrength) {
-    return 'player_hit'
+    return 'creature_hit'  // Player wins, creature gets hit
   } else if (creatureStrength > playerStrength) {
-    return 'creature_hit'
+    return 'player_hit'    // Creature wins, player gets hit
   }
   return 'draw'
 }
