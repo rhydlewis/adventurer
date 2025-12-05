@@ -809,6 +809,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return
     }
 
+    // Auto-advance to BATTLE phase, then creature responds
+    setTimeout(() => {
+      set({ gamePhase: 'BATTLE' })
+    }, 1000)
+
     // Creature response - spell or attack
     setTimeout(() => {
       const currentState = get()
