@@ -1,4 +1,5 @@
 import type { Character, Creature } from '../types'
+import { useGameStore } from '../store/gameStore'
 
 interface CharacterStatsProps {
   character: Character | Creature
@@ -10,6 +11,22 @@ interface CharacterStatsProps {
 
 export function CharacterStats({ character, label, tookDamage = false, wasHealed = false, imageUrl }: CharacterStatsProps) {
   const staminaPercentage = (character.currentStamina / character.maxStamina) * 100
+  const activeEffects = useGameStore((state) => state.activeEffects)
+
+  // Calculate skill modifier for this character
+  const isPlayer = label.toLowerCase().includes('you') || label.toLowerCase().includes('player')
+  const target = isPlayer ? 'player' : 'creature'
+
+  let skillMod = 0
+  activeEffects.forEach(effect => {
+    if (effect.target === target) {
+      if (effect.type === 'skill_buff') {
+        skillMod += effect.value
+      } else if (effect.type === 'skill_debuff') {
+        skillMod -= effect.value
+      }
+    }
+  })
 
   return (
     <div className={`bg-white/50 rounded-lg p-4 ${tookDamage ? 'animate-blood-splatter' : ''} ${wasHealed ? 'animate-healing-glow' : ''}`}>
@@ -36,6 +53,11 @@ export function CharacterStats({ character, label, tookDamage = false, wasHealed
           <div className="text-sm text-dark-brown/70">SKILL</div>
           <div className="text-2xl font-bold text-dark-brown">
             {character.skill}
+            {skillMod !== 0 && (
+              <span className={skillMod > 0 ? 'text-green-600' : 'text-red-600'}>
+                {' '}{skillMod > 0 ? '+' : ''}{skillMod}
+              </span>
+            )}
           </div>
         </div>
         <div>
