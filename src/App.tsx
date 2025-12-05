@@ -21,12 +21,14 @@ function App() {
     const quickStart = parseQuickStartParams()
 
     if (quickStart) {
-      // Auto-create character
+      // Auto-create character (no spells for quick start)
       createCharacter(
         quickStart.character.name,
         quickStart.character.skill,
         quickStart.character.stamina,
-        quickStart.character.luck
+        quickStart.character.luck,
+        0,
+        []
       )
 
       // Auto-select avatar if provided

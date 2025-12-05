@@ -95,7 +95,35 @@ export function CharacterSelectScreen() {
       navigator.vibrate(10)
     }
 
-    createCharacter(playerName.trim(), selectedStats.skill, selectedStats.stamina, selectedStats.luck)
+    // Find which preset was selected to get mana/spells
+    const presetKey = Object.keys(PRESETS).find(key => {
+      const preset = PRESETS[key]
+      return preset.skill === selectedStats.skill &&
+             preset.stamina === selectedStats.stamina &&
+             preset.luck === selectedStats.luck
+    })
+
+    if (presetKey) {
+      const preset = PRESETS[presetKey]
+      createCharacter(
+        playerName.trim(),
+        selectedStats.skill,
+        selectedStats.stamina,
+        selectedStats.luck,
+        preset.mana,
+        preset.spells
+      )
+    } else {
+      // Roll your own - no spells
+      createCharacter(
+        playerName.trim(),
+        selectedStats.skill,
+        selectedStats.stamina,
+        selectedStats.luck,
+        0,
+        []
+      )
+    }
   }
 
   const handleStartCampaign = () => {
@@ -106,7 +134,36 @@ export function CharacterSelectScreen() {
       navigator.vibrate(10)
     }
 
-    createCharacter(playerName.trim(), selectedStats.skill, selectedStats.stamina, selectedStats.luck)
+    // Find which preset was selected to get mana/spells
+    const presetKey = Object.keys(PRESETS).find(key => {
+      const preset = PRESETS[key]
+      return preset.skill === selectedStats.skill &&
+             preset.stamina === selectedStats.stamina &&
+             preset.luck === selectedStats.luck
+    })
+
+    if (presetKey) {
+      const preset = PRESETS[presetKey]
+      createCharacter(
+        playerName.trim(),
+        selectedStats.skill,
+        selectedStats.stamina,
+        selectedStats.luck,
+        preset.mana,
+        preset.spells
+      )
+    } else {
+      // Roll your own - no spells
+      createCharacter(
+        playerName.trim(),
+        selectedStats.skill,
+        selectedStats.stamina,
+        selectedStats.luck,
+        0,
+        []
+      )
+    }
+
     startCampaign()
   }
 
@@ -228,23 +285,23 @@ export function CharacterSelectScreen() {
               disabled={!isNameValid}
               className="w-full py-3 px-4 rounded-lg font-semibold text-white bg-deep-red hover:bg-deep-red/90 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
-              🗡️ WARRIOR<br/>(SKILL: 10, STAMINA: 20, LUCK: 9)
+              🗡️ WARRIOR<br/>(SKILL: 10, STAMINA: 20, LUCK: 9)<br/>(3 spells, 12 mana)
             </button>
 
             <button
-              onClick={() => handlePresetSelect('rogue')}
+              onClick={() => handlePresetSelect('thief')}
               disabled={!isNameValid}
               className="w-full py-3 px-4 rounded-lg font-semibold text-white bg-deep-red hover:bg-deep-red/90 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
-              🪄 WIZARD<br/>(SKILL: 9, STAMINA: 18, LUCK: 11)
+              🔪 THIEF<br/>(SKILL: 9, STAMINA: 18, LUCK: 11)<br/>(3 spells, 14 mana)
             </button>
 
             <button
-              onClick={() => handlePresetSelect('barbarian')}
+              onClick={() => handlePresetSelect('wizard')}
               disabled={!isNameValid}
               className="w-full py-3 px-4 rounded-lg font-semibold text-white bg-deep-red hover:bg-deep-red/90 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
-              🔪 THIEF<br/>(SKILL: 8, STAMINA: 24, LUCK: 8)
+              🪄 WIZARD<br/>(SKILL: 8, STAMINA: 16, LUCK: 9)<br/>(4 spells, 16 mana)
             </button>
 
             <button
