@@ -4,6 +4,7 @@ export type GamePhase =
   | 'CREATURE_SELECT'
   | 'BATTLE'
   | 'DICE_ROLLING'
+  | 'SPELL_CASTING'
   | 'LUCK_TEST'
   | 'ROUND_RESULT'
   | 'BATTLE_END'
@@ -37,6 +38,39 @@ export interface Item {
   remaining: number
 }
 
+// Spell system types
+export type SpellEffectType =
+  | 'damage'        // Direct damage to target
+  | 'heal'          // Restore stamina
+  | 'buff'          // Increase stat (next attack only)
+  | 'debuff'        // Decrease enemy stat (next attack only)
+  | 'drain'         // Damage + heal
+  | 'block'         // Prevent next incoming damage
+
+export interface SpellEffect {
+  type: SpellEffectType
+  power: number           // Damage/heal amount
+  statModifier?: {        // For buffs/debuffs
+    stat: 'skill' | 'luck'
+    amount: number
+    target: 'self' | 'enemy'
+  }
+}
+
+export interface Spell {
+  id: string
+  name: string
+  description: string
+  manaCost: number
+  effect: SpellEffect
+}
+
+export interface ActiveEffect {
+  type: 'skill_buff' | 'skill_debuff' | 'luck_buff' | 'luck_debuff' | 'block'
+  value: number
+  target: 'player' | 'creature'
+}
+
 export interface Character {
   name: string
   skill: number
@@ -44,6 +78,9 @@ export interface Character {
   currentStamina: number
   luck: number
   maxLuck: number
+  mana: number
+  maxMana: number
+  spells: string[]
   reactions?: Reactions
   avatar?: string
 }
@@ -54,6 +91,10 @@ export interface Creature {
   maxStamina: number
   currentStamina: number
   imageUrl?: string
+  mana?: number
+  maxMana?: number
+  spells?: string[]
+  spellCastChance?: number
   reactions?: Reactions
 }
 
@@ -72,6 +113,13 @@ export interface CombatLogEntry {
   modifiedDamage?: number
   target?: 'player' | 'creature'
   skipped?: boolean
+  // Spell casting fields
+  spellCast?: {
+    caster: 'player' | 'creature'
+    spellName: string
+    manaCost: number
+    effect: string
+  }
 }
 
 export interface ActiveReaction {
@@ -110,6 +158,9 @@ export interface GameState {
   // Luck test
   pendingLuckTest: PendingLuckTest | null
 
+  // Spell system
+  activeEffects: ActiveEffect[]
+
   // UI state
   lastRoundSummary: string
   showFullLog: boolean
@@ -125,6 +176,8 @@ export interface PresetCharacter {
   skill: number
   stamina: number
   luck: number
+  mana: number
+  spells: string[]
 }
 
 export type CreatureDifficulty = 'easy' | 'medium' | 'hard' | 'legendary'
@@ -163,7 +216,25 @@ export interface HighScoreEntry {
 }
 
 export const PRESETS: Record<string, PresetCharacter> = {
-  warrior: { skill: 10, stamina: 20, luck: 9 },
-  rogue: { skill: 9, stamina: 18, luck: 11 },
-  barbarian: { skill: 8, stamina: 24, luck: 8 },
+  warrior: {
+    skill: 10,
+    stamina: 20,
+    luck: 9,
+    mana: 12,
+    spells: ['magic_missile', 'shield', 'block']
+  },
+  thief: {
+    skill: 9,
+    stamina: 18,
+    luck: 11,
+    mana: 14,
+    spells: ['magic_missile', 'weakness', 'drain']
+  },
+  wizard: {
+    skill: 8,
+    stamina: 16,
+    luck: 9,
+    mana: 16,
+    spells: ['magic_missile', 'fireball', 'healing_light', 'shield']
+  },
 }
