@@ -6,6 +6,7 @@ import { InventoryPanel } from './InventoryPanel'
 import { SpeechBubble } from './SpeechBubble'
 import { LuckTestModal } from './LuckTestModal'
 import { ScoreDisplay } from './ScoreDisplay'
+import { SpellBook } from './SpellBook'
 import { useState, useEffect } from 'react'
 
 export function BattleScreen() {
@@ -21,6 +22,7 @@ export function BattleScreen() {
   const toggleFullLog = useGameStore((state) => state.toggleFullLog)
   const activeReaction = useGameStore((state) => state.activeReaction)
   const clearReaction = useGameStore((state) => state.clearReaction)
+  const openSpellBook = useGameStore((state) => state.openSpellBook)
 
   const [playerWasHealed, setPlayerWasHealed] = useState(false)
   const [previousPlayerStamina, setPreviousPlayerStamina] = useState(player?.currentStamina || 0)
@@ -147,16 +149,36 @@ export function BattleScreen() {
           {isRolling || showResults ? 'Rolling...' : 'ATTACK'}
         </button>
 
-        <button
-          onClick={rollSpecialAttack}
-          disabled={isRolling || showResults}
-          className="w-full py-3 px-6 rounded-lg font-cinzel font-bold text-lg text-white bg-gradient-to-r from-purple-700 to-pink-600 hover:from-purple-800 hover:to-pink-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors shadow-lg border-2 border-yellow-400"
-        >
-          ⚡ SPECIAL ATTACK ⚡
-        </button>
-        <p className="text-center text-xs text-dark-brown/70">
-          67% chance: 4 damage to enemy | 33% chance: backfire (2 damage to you!)
-        </p>
+        {/* Special actions row - Special Attack and Cast Spell */}
+        <div className="flex gap-2 mb-2">
+          {/* Special Attack button - 50% width */}
+          <button
+            onClick={rollSpecialAttack}
+            disabled={isRolling || showResults}
+            className="flex-1 py-3 px-6 bg-purple-600 text-white rounded font-cinzel font-bold hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all active:scale-95 disabled:active:scale-100"
+          >
+            Special Attack
+          </button>
+
+          {/* Cast Spell button - 50% width */}
+          <button
+            onClick={openSpellBook}
+            disabled={
+              isRolling ||
+              showResults ||
+              !player?.spells?.length ||
+              player?.mana === 0
+            }
+            className="flex-1 py-3 px-6 bg-blue-600 text-white rounded font-cinzel font-bold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all active:scale-95 disabled:active:scale-100"
+          >
+            {!player?.spells?.length
+              ? 'Cast Spell (No Spells)'
+              : player?.mana === 0
+                ? `Cast Spell (⚡ 0/${player?.maxMana})`
+                : `Cast Spell (⚡ ${player?.mana}/${player?.maxMana})`
+            }
+          </button>
+        </div>
       </div>
 
       {/* Combat Log Modal */}
@@ -165,11 +187,14 @@ export function BattleScreen() {
       {/* Luck Test Modal */}
       <LuckTestModal />
 
+      {/* Spell Book modal */}
+      {gamePhase === 'SPELL_CASTING' && <SpellBook />}
+
       {/* Inventory Popover - Only show during BATTLE phase */}
       {gamePhase === 'BATTLE' && (
-        <InventoryPanel 
-          isOpen={isInventoryOpen} 
-          onClose={() => setIsInventoryOpen(false)} 
+        <InventoryPanel
+          isOpen={isInventoryOpen}
+          onClose={() => setIsInventoryOpen(false)}
         />
       )}
     </div>
