@@ -67,6 +67,22 @@ export function CharacterStats({ character, label, tookDamage = false, wasHealed
             </div>
           </div>
         )}
+        {/* Mana stat - only show if character has mana */}
+        {'maxMana' in character && character.maxMana !== undefined && character.maxMana > 0 && (
+          <div>
+            <div className="text-sm text-dark-brown/70">MANA</div>
+            <div className="text-2xl font-bold text-blue-600">
+              {character.mana} / {character.maxMana}
+            </div>
+            {/* Mana bar */}
+            <div className="mt-1 h-2 bg-dark-brown/20 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-blue-500 transition-all duration-300"
+                style={{ width: `${(character.mana! / character.maxMana) * 100}%` }}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
