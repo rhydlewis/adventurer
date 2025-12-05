@@ -11,11 +11,12 @@ import { performLuckTest } from '../utils/luck'
 import { calculateBattleScore } from '../utils/scoring'
 import { calculateRecovery } from '../utils/recovery'
 import { saveHighScore } from '../utils/storage'
+import { SPELL_LIBRARY, applySpellEffect } from '../utils/spells'
 
 interface GameStore extends GameState {
   // Actions
   selectCreature: (name: string, skill: number, stamina: number, imageUrl?: string, reactions?: Reactions) => void
-  createCharacter: (name: string, skill: number, stamina: number, luck: number) => void
+  createCharacter: (name: string, skill: number, stamina: number, luck: number, mana: number, spells: string[]) => void
   selectAvatar: (avatar: string) => void
   startBattle: () => void
   rollAttack: () => void
@@ -28,6 +29,10 @@ interface GameStore extends GameState {
   clearReaction: () => void
   testLuck: () => void
   skipLuckTest: () => void
+  // Spell casting actions
+  openSpellBook: () => void
+  castSpell: (spellId: string) => void
+  cancelSpellCast: () => void
   // Campaign actions
   startCampaign: () => void
   endCampaign: () => void
@@ -53,6 +58,7 @@ const initialState: GameState = {
   currentCreatureRoll: null,
   inventory: [],
   pendingLuckTest: null,
+  activeEffects: [],
   lastRoundSummary: '',
   showFullLog: false,
   activeReaction: null,
