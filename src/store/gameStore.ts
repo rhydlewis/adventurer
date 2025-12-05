@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { GameState, GamePhase, CombatLogEntry, CombatResult, ReactionType, Reactions } from '../types'
+import type { GameState, GamePhase, CombatLogEntry, CombatResult, ReactionType, Reactions, BattleRecord, CreatureDifficulty } from '../types'
 import {
   roll2d6,
   calculateAttackStrength,
@@ -8,6 +8,9 @@ import {
 } from '../utils/combat'
 import { DEFAULT_INVENTORY, applyItemEffect } from '../utils/items'
 import { performLuckTest } from '../utils/luck'
+import { calculateBattleScore } from '../utils/scoring'
+import { calculateRecovery } from '../utils/recovery'
+import { saveHighScore } from '../utils/storage'
 
 interface GameStore extends GameState {
   // Actions
@@ -25,6 +28,11 @@ interface GameStore extends GameState {
   clearReaction: () => void
   testLuck: () => void
   skipLuckTest: () => void
+  // Campaign actions
+  startCampaign: () => void
+  endCampaign: () => void
+  recordBattleVictory: (creatureDifficulty: CreatureDifficulty) => void
+  applyCampaignRecovery: () => void
 }
 
 // Load creature from URL on initialization
@@ -48,6 +56,30 @@ const initialState: GameState = {
   lastRoundSummary: '',
   showFullLog: false,
   activeReaction: null,
+  campaignState: null,
+}
+
+// Helper function to check battle end and advance phase
+const checkBattleEndAndAdvance = (get: () => GameStore, set: (state: Partial<GameStore>) => void, delay: number) => {
+  setTimeout(() => {
+    const currentState = get()
+    if (
+      currentState.player!.currentStamina <= 0 ||
+      currentState.creature.currentStamina <= 0
+    ) {
+      // Trigger victory/loss reactions
+      if (currentState.player!.currentStamina <= 0) {
+        get().triggerReaction('creature', 'victory')
+        setTimeout(() => get().triggerReaction('player', 'loss'), 1000)
+      } else {
+        get().triggerReaction('player', 'victory')
+        setTimeout(() => get().triggerReaction('creature', 'loss'), 1000)
+      }
+      set({ gamePhase: 'BATTLE_END' })
+    } else {
+      set({ gamePhase: 'BATTLE' })
+    }
+  }, delay)
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -189,25 +221,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         })
 
         // Auto-advance after ROUND_RESULT
-        setTimeout(() => {
-          const currentState = get()
-          if (
-            currentState.player!.currentStamina <= 0 ||
-            currentState.creature.currentStamina <= 0
-          ) {
-            // Trigger victory/loss reactions
-            if (currentState.player!.currentStamina <= 0) {
-              get().triggerReaction('creature', 'victory')
-              setTimeout(() => get().triggerReaction('player', 'loss'), 1000)
-            } else {
-              get().triggerReaction('player', 'victory')
-              setTimeout(() => get().triggerReaction('creature', 'loss'), 1000)
-            }
-            set({ gamePhase: 'BATTLE_END' })
-          } else {
-            set({ gamePhase: 'BATTLE' })
-          }
-        }, 1000)
+        checkBattleEndAndAdvance(get, set, 1000)
       } else if (result === 'creature_hit') {
         // Creature hits player - offer luck test to reduce damage
         set({
@@ -236,28 +250,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         })
 
         // Auto-advance after ROUND_RESULT (only for draw case)
-        setTimeout(() => {
-          const currentState = get()
-          if (
-            currentState.player!.currentStamina <= 0 ||
-            currentState.creature.currentStamina <= 0
-          ) {
-            // Trigger victory/loss reactions
-            if (currentState.player!.currentStamina <= 0) {
-              // Player lost, creature won
-              get().triggerReaction('creature', 'victory')
-              setTimeout(() => get().triggerReaction('player', 'loss'), 1000)
-            } else {
-              // Creature lost, player won
-              get().triggerReaction('player', 'victory')
-              setTimeout(() => get().triggerReaction('creature', 'loss'), 1000)
-            }
-
-            set({ gamePhase: 'BATTLE_END' })
-          } else {
-            set({ gamePhase: 'BATTLE' })
-          }
-        }, 1000)
+        checkBattleEndAndAdvance(get, set, 1000)
       }
     }, 1500)
   },
@@ -351,25 +344,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         })
 
         // Auto-advance after ROUND_RESULT
-        setTimeout(() => {
-          const currentState = get()
-          if (
-            currentState.player!.currentStamina <= 0 ||
-            currentState.creature.currentStamina <= 0
-          ) {
-            // Trigger victory/loss reactions
-            if (currentState.player!.currentStamina <= 0) {
-              get().triggerReaction('creature', 'victory')
-              setTimeout(() => get().triggerReaction('player', 'loss'), 1000)
-            } else {
-              get().triggerReaction('player', 'victory')
-              setTimeout(() => get().triggerReaction('creature', 'loss'), 1000)
-            }
-            set({ gamePhase: 'BATTLE_END' })
-          } else {
-            set({ gamePhase: 'BATTLE' })
-          }
-        }, 1000)
+        checkBattleEndAndAdvance(get, set, 1000)
       }
     }, 1500)
   },
@@ -535,25 +510,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     // Auto-advance after ROUND_RESULT
     // Increased delay to allow luck test reactions to be seen
-    setTimeout(() => {
-      const currentState = get()
-      if (
-        currentState.player!.currentStamina <= 0 ||
-        currentState.creature.currentStamina <= 0
-      ) {
-        // Trigger victory/loss reactions with additional delay to avoid overriding luck reactions
-        if (currentState.player!.currentStamina <= 0) {
-          get().triggerReaction('creature', 'victory')
-          setTimeout(() => get().triggerReaction('player', 'loss'), 1000)
-        } else {
-          get().triggerReaction('player', 'victory')
-          setTimeout(() => get().triggerReaction('creature', 'loss'), 1000)
-        }
-        set({ gamePhase: 'BATTLE_END' })
-      } else {
-        set({ gamePhase: 'BATTLE' })
-      }
-    }, 2500)
+    checkBattleEndAndAdvance(get, set, 2500)
   },
 
   skipLuckTest: () => {
@@ -628,24 +585,116 @@ export const useGameStore = create<GameStore>((set, get) => ({
     })
 
     // Auto-advance after ROUND_RESULT
-    setTimeout(() => {
-      const currentState = get()
-      if (
-        currentState.player!.currentStamina <= 0 ||
-        currentState.creature.currentStamina <= 0
-      ) {
-        // Trigger victory/loss reactions
-        if (currentState.player!.currentStamina <= 0) {
-          get().triggerReaction('creature', 'victory')
-          setTimeout(() => get().triggerReaction('player', 'loss'), 1000)
-        } else {
-          get().triggerReaction('player', 'victory')
-          setTimeout(() => get().triggerReaction('creature', 'loss'), 1000)
-        }
-        set({ gamePhase: 'BATTLE_END' })
-      } else {
-        set({ gamePhase: 'BATTLE' })
+    checkBattleEndAndAdvance(get, set, 1000)
+  },
+
+  startCampaign: () => {
+    const state = get()
+    if (!state.player) return
+
+    set({
+      campaignState: {
+        isActive: true,
+        score: 0,
+        battlesWon: 0,
+        totalDamageDealt: 0,
+        totalDamageTaken: 0,
+        perfectVictories: 0,
+        currentStreak: 0,
+        startingStats: {
+          skill: state.player.skill,
+          stamina: state.player.maxStamina,
+          luck: state.player.maxLuck,
+        },
+        battleHistory: [],
       }
-    }, 1000)
+    })
+  },
+
+  endCampaign: () => {
+    const state = get()
+    if (!state.campaignState || !state.player) return
+
+    // Save high score
+    saveHighScore({
+      playerName: state.player.name,
+      score: state.campaignState.score,
+      battlesWon: state.campaignState.battlesWon,
+      timestamp: Date.now(),
+    })
+
+    set({ gamePhase: 'CAMPAIGN_END' })
+  },
+
+  recordBattleVictory: (creatureDifficulty: CreatureDifficulty) => {
+    const state = get()
+    if (!state.campaignState || !state.player) return
+
+    const damageDealt = state.creature.maxStamina - state.creature.currentStamina
+    const damageTaken = state.player.maxStamina - state.player.currentStamina
+    const isPerfectVictory = damageTaken === 0
+
+    // Calculate battle score
+    const battleScore = calculateBattleScore({
+      roundsCompleted: state.currentRound,
+      damageDealt,
+      damageTaken,
+      creatureDifficulty,
+      isPerfectVictory,
+      currentStreak: state.campaignState.currentStreak,
+    })
+
+    // Create battle record
+    const battleRecord: BattleRecord = {
+      battleNumber: state.campaignState.battlesWon + 1,
+      creature: state.creature.name,
+      victory: true,
+      score: battleScore,
+      roundsCompleted: state.currentRound,
+      damageDealt,
+      damageTaken,
+    }
+
+    // Update campaign state
+    set({
+      campaignState: {
+        ...state.campaignState,
+        score: state.campaignState.score + battleScore,
+        battlesWon: state.campaignState.battlesWon + 1,
+        totalDamageDealt: state.campaignState.totalDamageDealt + damageDealt,
+        totalDamageTaken: state.campaignState.totalDamageTaken + damageTaken,
+        perfectVictories: state.campaignState.perfectVictories + (isPerfectVictory ? 1 : 0),
+        currentStreak: state.campaignState.currentStreak + 1,
+        battleHistory: [...state.campaignState.battleHistory, battleRecord],
+      },
+      gamePhase: 'CAMPAIGN_VICTORY',
+    })
+  },
+
+  applyCampaignRecovery: () => {
+    const state = get()
+    if (!state.campaignState || !state.player) return
+
+    // Calculate recovery
+    const recovery = calculateRecovery(state.player)
+
+    // Apply recovery to player
+    const newStamina = Math.min(
+      state.player.maxStamina,
+      state.player.currentStamina + recovery.staminaRestored
+    )
+    const newLuck = Math.min(
+      state.player.maxLuck,
+      state.player.luck + recovery.luckRestored
+    )
+
+    set({
+      player: {
+        ...state.player,
+        currentStamina: newStamina,
+        luck: newLuck,
+      },
+      gamePhase: 'CREATURE_SELECT',
+    })
   },
 }))

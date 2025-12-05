@@ -1,14 +1,44 @@
+import { useEffect, useRef } from 'react'
 import { useGameStore } from '../store/gameStore'
+import type { CreatureDifficulty } from '../types'
 
 export function BattleEndScreen() {
   const player = useGameStore((state) => state.player)
   const creature = useGameStore((state) => state.creature)
   const currentRound = useGameStore((state) => state.currentRound)
+  const campaignState = useGameStore((state) => state.campaignState)
   const resetGame = useGameStore((state) => state.resetGame)
+  const recordBattleVictory = useGameStore((state) => state.recordBattleVictory)
+  const endCampaign = useGameStore((state) => state.endCampaign)
+  const hasProcessedCampaign = useRef(false)
+
+  const playerWon = player ? player.currentStamina > 0 : false
+
+  // Handle campaign mode routing (only once)
+  useEffect(() => {
+    if (campaignState?.isActive && !hasProcessedCampaign.current) {
+      hasProcessedCampaign.current = true
+
+      if (playerWon) {
+        // Determine creature difficulty
+        let difficulty: CreatureDifficulty = 'medium'
+        if (creature.maxStamina <= 6) difficulty = 'easy'
+        else if (creature.maxStamina >= 10) difficulty = 'hard'
+        if (creature.maxStamina >= 15 && creature.skill >= 10) difficulty = 'legendary'
+
+        recordBattleVictory(difficulty)
+      } else {
+        endCampaign()
+      }
+    }
+  }, [campaignState, playerWon, creature, recordBattleVictory, endCampaign])
 
   if (!player) return null
 
-  const playerWon = player.currentStamina > 0
+  // Don't render normal battle end screen if in campaign mode
+  if (campaignState?.isActive) {
+    return null
+  }
 
   const handleShare = async () => {
     // Haptic feedback

@@ -7,6 +7,8 @@ export type GamePhase =
   | 'LUCK_TEST'
   | 'ROUND_RESULT'
   | 'BATTLE_END'
+  | 'CAMPAIGN_VICTORY'
+  | 'CAMPAIGN_END'
 
 export type CombatResult = 'player_hit' | 'creature_hit' | 'draw'
 
@@ -114,12 +116,50 @@ export interface GameState {
 
   // Reactions
   activeReaction: ActiveReaction | null
+
+  // Campaign
+  campaignState: CampaignState | null
 }
 
 export interface PresetCharacter {
   skill: number
   stamina: number
   luck: number
+}
+
+export type CreatureDifficulty = 'easy' | 'medium' | 'hard' | 'legendary'
+
+export interface CampaignState {
+  isActive: boolean
+  score: number
+  battlesWon: number
+  totalDamageDealt: number
+  totalDamageTaken: number
+  perfectVictories: number
+  currentStreak: number
+  startingStats: {
+    skill: number
+    stamina: number
+    luck: number
+  }
+  battleHistory: BattleRecord[]
+}
+
+export interface BattleRecord {
+  battleNumber: number
+  creature: string
+  victory: boolean
+  score: number
+  roundsCompleted: number
+  damageDealt: number
+  damageTaken: number
+}
+
+export interface HighScoreEntry {
+  playerName: string
+  score: number
+  battlesWon: number
+  timestamp: number
 }
 
 export const PRESETS: Record<string, PresetCharacter> = {

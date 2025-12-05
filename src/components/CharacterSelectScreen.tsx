@@ -14,8 +14,10 @@ export function CharacterSelectScreen() {
   const [showRollModal, setShowRollModal] = useState(false)
   const [rolledStats, setRolledStats] = useState<RolledStats | null>(null)
   const [isRolling, setIsRolling] = useState(false)
+  const [selectedStats, setSelectedStats] = useState<RolledStats | null>(null)
 
   const createCharacter = useGameStore((state) => state.createCharacter)
+  const startCampaign = useGameStore((state) => state.startCampaign)
 
   const handlePresetSelect = (presetKey: string) => {
     if (!playerName.trim()) return
@@ -26,7 +28,11 @@ export function CharacterSelectScreen() {
     }
 
     const preset = PRESETS[presetKey]
-    createCharacter(playerName.trim(), preset.skill, preset.stamina, preset.luck)
+    setSelectedStats({
+      skill: preset.skill,
+      stamina: preset.stamina,
+      luck: preset.luck
+    })
   }
 
   const handleRollYourOwn = () => {
@@ -73,12 +79,35 @@ export function CharacterSelectScreen() {
       navigator.vibrate(10)
     }
 
-    createCharacter(playerName.trim(), rolledStats.skill, rolledStats.stamina, rolledStats.luck)
+    setSelectedStats(rolledStats)
     setShowRollModal(false)
   }
 
   const handleReroll = () => {
     rollCharacterStats()
+  }
+
+  const handleContinueSingleBattle = () => {
+    if (!selectedStats) return
+
+    // Haptic feedback
+    if (navigator.vibrate) {
+      navigator.vibrate(10)
+    }
+
+    createCharacter(playerName.trim(), selectedStats.skill, selectedStats.stamina, selectedStats.luck)
+  }
+
+  const handleStartCampaign = () => {
+    if (!selectedStats) return
+
+    // Haptic feedback
+    if (navigator.vibrate) {
+      navigator.vibrate(10)
+    }
+
+    createCharacter(playerName.trim(), selectedStats.skill, selectedStats.stamina, selectedStats.luck)
+    startCampaign()
   }
 
   const isNameValid = playerName.trim().length > 0
@@ -108,10 +137,59 @@ export function CharacterSelectScreen() {
           Advent-turer
         </h1>
         <h2 className="text-xl font-cinzel text-dark-brown text-center mb-8">
-          Create Your Character
+          {selectedStats ? 'Choose Your Mode' : 'Create Your Character'}
         </h2>
 
-        <div className="bg-white/50 rounded-lg p-6 shadow-lg max-w-md mx-auto">
+        {selectedStats ? (
+          // Mode Selection Screen
+          <div className="bg-white/50 rounded-lg p-6 shadow-lg max-w-md mx-auto">
+            <div className="text-center mb-6">
+              <div className="text-2xl font-cinzel font-bold text-dark-brown mb-4">
+                {playerName}
+              </div>
+              <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="bg-white/50 rounded-lg p-3">
+                  <div className="text-xs text-dark-brown/70 mb-1">SKILL</div>
+                  <div className="text-2xl font-bold text-dark-brown">{selectedStats.skill}</div>
+                </div>
+                <div className="bg-white/50 rounded-lg p-3">
+                  <div className="text-xs text-dark-brown/70 mb-1">STAMINA</div>
+                  <div className="text-2xl font-bold text-dark-brown">{selectedStats.stamina}</div>
+                </div>
+                <div className="bg-white/50 rounded-lg p-3">
+                  <div className="text-xs text-dark-brown/70 mb-1">LUCK</div>
+                  <div className="text-2xl font-bold text-yellow-600">{selectedStats.luck}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <button
+                onClick={handleContinueSingleBattle}
+                className="w-full py-4 px-6 rounded-lg font-cinzel font-bold text-lg text-white bg-dark-brown hover:bg-dark-brown/90 transition-colors shadow-lg"
+              >
+                SINGLE BATTLE
+              </button>
+              <button
+                onClick={handleStartCampaign}
+                className="w-full py-4 px-6 rounded-lg font-cinzel font-bold text-lg text-white bg-forest-green hover:bg-forest-green/90 transition-colors shadow-lg"
+              >
+                START CAMPAIGN
+              </button>
+            </div>
+
+            <div className="mt-6 text-center">
+              <button
+                onClick={() => setSelectedStats(null)}
+                className="text-sm text-dark-brown/70 hover:text-dark-brown underline"
+              >
+                Choose different stats
+              </button>
+            </div>
+          </div>
+        ) : (
+          // Character Creation Screen
+          <div className="bg-white/50 rounded-lg p-6 shadow-lg max-w-md mx-auto">
           <label className="block mb-4">
             <span className="text-dark-brown font-semibold mb-2 block">
               Your Name:
@@ -178,6 +256,7 @@ export function CharacterSelectScreen() {
             </button>
           </div>
         </div>
+        )}
       </div>
 
       {/* Roll Your Own Modal */}

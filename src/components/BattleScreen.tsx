@@ -5,6 +5,7 @@ import { CombatLogModal } from './CombatLogModal'
 import { InventoryPanel } from './InventoryPanel'
 import { SpeechBubble } from './SpeechBubble'
 import { LuckTestModal } from './LuckTestModal'
+import { ScoreDisplay } from './ScoreDisplay'
 import { useState, useEffect } from 'react'
 
 export function BattleScreen() {
@@ -47,6 +48,7 @@ export function BattleScreen() {
 
   return (
     <div className="min-h-screen bg-parchment flex flex-col p-4">
+      <ScoreDisplay />
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="w-12"></div> {/* Spacer for centering */}

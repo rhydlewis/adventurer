@@ -41,7 +41,7 @@ export function SpeechBubble({ text, isVisible, position, onComplete }: SpeechBu
     text-sm font-medium text-gray-800
     transition-all duration-300 transform
     ${isAnimating ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}
-    ${position === 'left' ? '-top-16 left-0 ml-2' : '-top-16 right-0 mr-2'}
+    ${position === 'left' ? 'top-[25%] left-0 ml-2' : 'top-[25%] right-0 mr-2'}
   `
 
   const tailClasses = `

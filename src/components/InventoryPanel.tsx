@@ -31,13 +31,13 @@ export function InventoryPanel({ isOpen, onClose }: InventoryPanelProps) {
     if (item.remaining <= 0) return false
 
     // Can't heal above max stamina
-    if (item.effect.type === 'heal' && player.currentStamina >= player.maxStamina) {
-      return false
+    if (item.effect.type === 'heal') {
+      return player.currentStamina < player.maxStamina
     }
 
     // Can't restore luck above max luck
-    if (item.effect.type === 'luck' && player.luck >= player.maxLuck) {
-      return false
+    if (item.effect.type === 'luck') {
+      return player.luck < player.maxLuck
     }
 
     return true

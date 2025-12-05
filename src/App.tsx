@@ -5,6 +5,8 @@ import { AvatarSelectScreen } from './components/AvatarSelectScreen'
 import { CreatureSelectScreen } from './components/CreatureSelectScreen'
 import { BattleScreen } from './components/BattleScreen'
 import { BattleEndScreen } from './components/BattleEndScreen'
+import { CampaignVictoryScreen } from './components/CampaignVictoryScreen'
+import { CampaignEndScreen } from './components/CampaignEndScreen'
 import { parseQuickStartParams } from './utils/urlParams'
 
 function App() {
@@ -69,6 +71,14 @@ function App() {
 
   if (gamePhase === 'BATTLE_END') {
     return <BattleEndScreen />
+  }
+
+  if (gamePhase === 'CAMPAIGN_VICTORY') {
+    return <CampaignVictoryScreen />
+  }
+
+  if (gamePhase === 'CAMPAIGN_END') {
+    return <CampaignEndScreen />
   }
 
   return null
