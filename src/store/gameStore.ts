@@ -197,13 +197,36 @@ export const useGameStore = create<GameStore>((set, get) => ({
         navigator.vibrate(20)
       }
 
+      // Apply active effects to skill values
+      const currentState = get()
+      const { activeEffects } = currentState
+      let playerSkillMod = 0
+      let creatureSkillMod = 0
+      let playerBlocked = false
+      let creatureBlocked = false
+
+      activeEffects.forEach(effect => {
+        if (effect.type === 'skill_buff' && effect.target === 'player') {
+          playerSkillMod += effect.value
+        }
+        if (effect.type === 'skill_debuff' && effect.target === 'creature') {
+          creatureSkillMod -= effect.value
+        }
+        if (effect.type === 'block' && effect.target === 'player') {
+          playerBlocked = true
+        }
+        if (effect.type === 'block' && effect.target === 'creature') {
+          creatureBlocked = true
+        }
+      })
+
       const playerAttackStrength = calculateAttackStrength(
         playerRoll,
-        state.player!.skill
+        state.player!.skill + playerSkillMod
       )
       const creatureAttackStrength = calculateAttackStrength(
         creatureRoll,
-        state.creature.skill
+        state.creature.skill + creatureSkillMod
       )
 
       const result = determineCombatResult(
@@ -223,47 +246,114 @@ export const useGameStore = create<GameStore>((set, get) => ({
         result,
       }
 
-      // Check if damage occurs and trigger luck test
-      if (result === 'player_hit') {
-        // Player hits creature - apply damage directly (no luck test for dealing damage)
-        const newCreatureStamina = Math.max(0, state.creature.currentStamina - 2)
-        const summary = `Round ${newRound}: You hit for 2 damage!`
+      let updatedCreature = state.creature
+      let summary = ''
 
-        // Trigger gloat reaction
-        get().triggerReaction('player', 'gloat')
+      // Apply block effects and calculate damage
+      if (result === 'creature_hit') {
+        let damage = 2
+        if (creatureBlocked) {
+          // Creature blocked - no damage
+          damage = 0
+          summary = `${state.creature.name} blocks your attack with magic!`
 
-        set({
-          gamePhase: 'ROUND_RESULT',
-          currentRound: newRound,
-          combatLog: [logEntry, ...state.combatLog],
-          currentPlayerRoll: playerRoll,
-          currentCreatureRoll: creatureRoll,
-          lastRoundSummary: summary,
-          creature: {
+          updatedCreature = {
             ...state.creature,
-            currentStamina: newCreatureStamina,
-          },
-        })
-
-        // Auto-advance after ROUND_RESULT
-        checkBattleEndAndAdvance(get, set, 1000)
-      } else if (result === 'creature_hit') {
-        // Creature hits player - offer luck test to reduce damage
-        set({
-          gamePhase: 'LUCK_TEST',
-          currentRound: newRound,
-          combatLog: [logEntry, ...state.combatLog],
-          currentPlayerRoll: playerRoll,
-          currentCreatureRoll: creatureRoll,
-          pendingLuckTest: {
-            damage: 2,
-            target: 'player',
-            type: 'reduce'
+            currentStamina: state.creature.currentStamina,
           }
-        })
+
+          // Trigger reactions for blocked attack
+          get().triggerReaction('creature', 'gloat')
+
+          set({
+            gamePhase: 'ROUND_RESULT',
+            currentRound: newRound,
+            combatLog: [logEntry, ...state.combatLog],
+            currentPlayerRoll: playerRoll,
+            currentCreatureRoll: creatureRoll,
+            lastRoundSummary: summary,
+            creature: updatedCreature,
+            activeEffects: currentState.activeEffects.filter(effect => {
+              // Remove skill buffs/debuffs and triggered blocks
+              if (effect.type === 'skill_buff' || effect.type === 'skill_debuff') return false
+              if (effect.type === 'block' && effect.target === 'creature') return false
+              return true
+            })
+          })
+
+          checkBattleEndAndAdvance(get, set, 1000)
+        } else {
+          // Normal hit - apply damage
+          updatedCreature = {
+            ...state.creature,
+            currentStamina: Math.max(0, state.creature.currentStamina - damage),
+          }
+          summary = `You hit ${state.creature.name} for ${damage} damage!`
+
+          // Trigger gloat reaction
+          get().triggerReaction('player', 'gloat')
+
+          set({
+            gamePhase: 'ROUND_RESULT',
+            currentRound: newRound,
+            combatLog: [logEntry, ...state.combatLog],
+            currentPlayerRoll: playerRoll,
+            currentCreatureRoll: creatureRoll,
+            lastRoundSummary: summary,
+            creature: updatedCreature,
+            activeEffects: currentState.activeEffects.filter(effect => {
+              // Remove skill buffs/debuffs
+              if (effect.type === 'skill_buff' || effect.type === 'skill_debuff') return false
+              return true
+            })
+          })
+
+          checkBattleEndAndAdvance(get, set, 1000)
+        }
+      } else if (result === 'player_hit') {
+        if (playerBlocked) {
+          // Player blocked - no damage
+          summary = 'You block the attack with your arcane barrier!'
+
+          set({
+            gamePhase: 'ROUND_RESULT',
+            currentRound: newRound,
+            combatLog: [logEntry, ...state.combatLog],
+            currentPlayerRoll: playerRoll,
+            currentCreatureRoll: creatureRoll,
+            lastRoundSummary: summary,
+            activeEffects: currentState.activeEffects.filter(effect => {
+              // Remove skill buffs/debuffs and triggered blocks
+              if (effect.type === 'skill_buff' || effect.type === 'skill_debuff') return false
+              if (effect.type === 'block' && effect.target === 'player') return false
+              return true
+            })
+          })
+
+          checkBattleEndAndAdvance(get, set, 1000)
+        } else {
+          // Creature hits player - offer luck test to reduce damage
+          set({
+            gamePhase: 'LUCK_TEST',
+            currentRound: newRound,
+            combatLog: [logEntry, ...state.combatLog],
+            currentPlayerRoll: playerRoll,
+            currentCreatureRoll: creatureRoll,
+            pendingLuckTest: {
+              damage: 2,
+              target: 'player',
+              type: 'reduce'
+            },
+            activeEffects: currentState.activeEffects.filter(effect => {
+              // Remove skill buffs/debuffs (blocks stay if not triggered)
+              if (effect.type === 'skill_buff' || effect.type === 'skill_debuff') return false
+              return true
+            })
+          })
+        }
       } else {
         // Draw - no damage, skip luck test
-        const summary = `Round ${newRound}: Your attack ${playerAttackStrength}, ${state.creature.name}'s attack ${creatureAttackStrength}. Draw! No damage.`
+        summary = 'Draw! Both attacks were equal.'
 
         set({
           gamePhase: 'ROUND_RESULT',
@@ -272,6 +362,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
           currentPlayerRoll: playerRoll,
           currentCreatureRoll: creatureRoll,
           lastRoundSummary: summary,
+          activeEffects: currentState.activeEffects.filter(effect => {
+            // Remove skill buffs/debuffs
+            if (effect.type === 'skill_buff' || effect.type === 'skill_debuff') return false
+            return true
+          })
         })
 
         // Auto-advance after ROUND_RESULT (only for draw case)
