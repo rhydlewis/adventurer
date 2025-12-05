@@ -711,9 +711,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
   // Spell casting actions
   openSpellBook: () => {
     const state = get()
-    if (state.gamePhase !== 'BATTLE') return
+    console.log('openSpellBook called, current phase:', state.gamePhase)
+    if (state.gamePhase !== 'BATTLE') {
+      console.log('Not in BATTLE phase, returning')
+      return
+    }
 
+    console.log('Setting phase to SPELL_CASTING')
     set({ gamePhase: 'SPELL_CASTING' })
+    const newState = get()
+    console.log('Phase set to SPELL_CASTING, new phase is:', newState.gamePhase)
   },
 
   cancelSpellCast: () => {
@@ -791,6 +798,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       currentRound: newRound,
       combatLog: [...state.combatLog, logEntry],
       lastRoundSummary: `You cast ${spell.name}! ${result.description}`,
+      gamePhase: 'ROUND_RESULT',
     })
 
     // Check if battle ends after player spell
