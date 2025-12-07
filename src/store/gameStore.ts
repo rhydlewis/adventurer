@@ -322,6 +322,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
       navigator.vibrate(10)
     }
 
+    // First, check if creature wants to cast a spell before showing dice
+    // This prevents confusing "?" dice when spell is cast
+    const creatureCastSpell = tryCreatureSpellCast(get, set)
+
+    if (creatureCastSpell) {
+      // Creature cast a spell - no dice rolling needed
+      console.log('⚔️ Creature cast spell instead of normal attack - no dice roll')
+      return
+    }
+
+    // No spell - proceed with normal dice rolling combat
+    console.log('⚔️ Creature did not cast spell - proceeding with normal combat')
+
     // Transition to DICE_ROLLING and clear previous rolls
     set({
       gamePhase: 'DICE_ROLLING',
@@ -331,16 +344,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     // Simulate dice rolling delay
     setTimeout(() => {
-      // First, check if creature wants to cast a spell instead of attacking
-      const creatureCastSpell = tryCreatureSpellCast(get, set)
-
-      if (creatureCastSpell) {
-        // Creature cast a spell instead of normal combat
-        console.log('⚔️ Creature cast spell instead of normal attack - combat round cancelled')
-        return
-      }
-
-      console.log('⚔️ Creature did not cast spell - proceeding with normal combat')
 
       const playerRoll = roll2d6()
       const creatureRoll = roll2d6()

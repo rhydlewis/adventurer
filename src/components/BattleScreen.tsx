@@ -50,6 +50,19 @@ export function BattleScreen() {
   const playerTookDamage = showResults && lastRound?.result === 'player_hit'
   const creatureTookDamage = showResults && lastRound?.result === 'creature_hit'
 
+  // Check if a spell was cast (no dice should be shown)
+  const wasSpellCast = lastRound?.spellCast !== undefined
+
+  // Debug logging
+  console.log('🎲 DICE DISPLAY CHECK:', {
+    gamePhase,
+    hasLastRound: !!lastRound,
+    hasSpellCast: !!lastRound?.spellCast,
+    wasSpellCast,
+    willShowDice: !wasSpellCast,
+    lastRoundSummary
+  })
+
   // Special attack cooldown check (can use once every 3 rounds)
   const specialAttackAvailable = lastSpecialAttackRound === null || currentRound - lastSpecialAttackRound >= 3
   const roundsUntilSpecialAttack = lastSpecialAttackRound === null
@@ -135,21 +148,30 @@ export function BattleScreen() {
         </div>
       </div>
 
-      {/* Dice Area */}
-      <div className="flex-1 flex items-center justify-center mb-6">
-        <div className="flex gap-8">
-          <Die
-            value={currentPlayerRoll}
-            isRolling={isRolling}
-            label="You"
-          />
-          <Die
-            value={currentCreatureRoll}
-            isRolling={isRolling}
-            label={creature.name}
-          />
+      {/* Dice Area - hide if last action was a spell cast */}
+      {!wasSpellCast && (
+        <div className="flex-1 flex items-center justify-center mb-6">
+          <div className="flex gap-8">
+            <Die
+              value={currentPlayerRoll}
+              isRolling={isRolling}
+              label="You"
+            />
+            <Die
+              value={currentCreatureRoll}
+              isRolling={isRolling}
+              label={creature.name}
+            />
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Spell indicator - show when spell was cast */}
+      {wasSpellCast && (
+        <div className="flex-1 flex items-center justify-center mb-6">
+          <div className="text-6xl animate-pulse">✨</div>
+        </div>
+      )}
 
 
       {/* Round Result Banner */}
