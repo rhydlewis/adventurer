@@ -1,4 +1,4 @@
-import type { Spell, SpellEffect, ActiveEffect, Character, Creature, GameState } from '../types'
+import type { Spell, ActiveEffect, Character, Creature } from '../types'
 
 export const SPELL_LIBRARY: Record<string, Spell> = {
   // Damage spells

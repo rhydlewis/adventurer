@@ -10,6 +10,13 @@ export function CombatLogModal() {
   if (!showFullLog || !player) return null
 
   const getResultColor = (entry: any) => {
+    // Spell casts get blue/purple styling
+    if (entry.spellCast) {
+      return entry.spellCast.caster === 'player'
+        ? 'bg-blue-100 border-blue-500'
+        : 'bg-purple-100 border-purple-500'
+    }
+
     // Luck tests get gold/yellow styling
     if (entry.isLuckTest) {
       if (entry.skipped) {
@@ -32,6 +39,12 @@ export function CombatLogModal() {
   }
 
   const getResultText = (entry: any) => {
+    // Check if this is a spell cast
+    if (entry.spellCast) {
+      const casterName = entry.spellCast.caster === 'player' ? 'You' : creature.name
+      return `⚡ ${casterName} cast ${entry.spellCast.spellName} - ${entry.spellCast.effect}`
+    }
+
     // Check if this is a luck test
     if (entry.isLuckTest) {
       if (entry.skipped) {
@@ -115,6 +128,13 @@ export function CombatLogModal() {
                   Round {entry.round}
                 </div>
 
+                {/* Spell cast shows mana cost */}
+                {entry.spellCast && (
+                  <div className="text-sm text-dark-brown mb-2">
+                    Mana Cost: {entry.spellCast.manaCost}
+                  </div>
+                )}
+
                 {/* Luck test shows roll and luck value */}
                 {entry.isLuckTest && !entry.skipped && (
                   <div className="text-sm text-dark-brown mb-2">
@@ -123,7 +143,7 @@ export function CombatLogModal() {
                 )}
 
                 {/* Only show attack strengths for normal attacks */}
-                {!entry.isLuckTest && entry.playerAttackStrength !== 999 && entry.playerAttackStrength !== 0 && (
+                {!entry.isLuckTest && !entry.spellCast && entry.playerAttackStrength !== 999 && entry.playerAttackStrength !== 0 && (
                   <>
                     <div className="text-sm text-dark-brown mb-1">
                       {player.name}: Attack Strength {entry.playerAttackStrength}

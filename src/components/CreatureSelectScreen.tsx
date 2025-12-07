@@ -28,7 +28,17 @@ export function CreatureSelectScreen() {
       adjustedStamina += difficulty.staminaBonus
     }
 
-    selectCreature(creature.name, adjustedSkill, adjustedStamina, creature.imageUrl, creature.reactions)
+    selectCreature(
+      creature.name,
+      adjustedSkill,
+      adjustedStamina,
+      creature.imageUrl,
+      creature.reactions,
+      creature.mana,
+      creature.maxMana,
+      creature.spells,
+      creature.spellCastChance
+    )
   }
 
   const handleStartBattle = () => {

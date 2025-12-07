@@ -17,6 +17,8 @@ export function BattleScreen() {
   const currentPlayerRoll = useGameStore((state) => state.currentPlayerRoll)
   const currentCreatureRoll = useGameStore((state) => state.currentCreatureRoll)
   const combatLog = useGameStore((state) => state.combatLog)
+  const currentRound = useGameStore((state) => state.currentRound)
+  const lastSpecialAttackRound = useGameStore((state) => state.lastSpecialAttackRound)
   const rollAttack = useGameStore((state) => state.rollAttack)
   const rollSpecialAttack = useGameStore((state) => state.rollSpecialAttack)
   const toggleFullLog = useGameStore((state) => state.toggleFullLog)
@@ -45,29 +47,53 @@ export function BattleScreen() {
 
   // Check if damage was taken in the most recent round
   const lastRound = combatLog[0]
-  const playerTookDamage = showResults && lastRound?.result === 'creature_hit'
-  const creatureTookDamage = showResults && lastRound?.result === 'player_hit'
+  const playerTookDamage = showResults && lastRound?.result === 'player_hit'
+  const creatureTookDamage = showResults && lastRound?.result === 'creature_hit'
+
+  // Special attack cooldown check (can use once every 3 rounds)
+  const specialAttackAvailable = lastSpecialAttackRound === null || currentRound - lastSpecialAttackRound >= 3
+  const roundsUntilSpecialAttack = lastSpecialAttackRound === null
+    ? 0
+    : Math.max(0, 3 - (currentRound - lastSpecialAttackRound))
+
+  // Debug logging for blood effect
+  if (showResults) {
+    console.log('🩸 BLOOD EFFECT DEBUG:', {
+      gamePhase,
+      currentRound,
+      combatLogLength: combatLog.length,
+      lastRoundExists: !!lastRound,
+      lastRound: lastRound ? {
+        round: lastRound.round,
+        result: lastRound.result,
+        playerAttackStrength: lastRound.playerAttackStrength,
+        creatureAttackStrength: lastRound.creatureAttackStrength,
+        isSpellCast: !!lastRound.spellCast,
+      } : null,
+      playerTookDamage,
+      creatureTookDamage,
+      explanation: lastRound?.result === 'player_hit'
+        ? 'player_hit means PLAYER WAS HIT (creature won) → player should show blood'
+        : lastRound?.result === 'creature_hit'
+        ? 'creature_hit means CREATURE WAS HIT (player won) → creature should show blood'
+        : 'draw or no round - no blood',
+      ALL_COMBAT_LOG: combatLog.map(entry => ({
+        round: entry.round,
+        result: entry.result,
+        pStr: entry.playerAttackStrength,
+        cStr: entry.creatureAttackStrength
+      }))
+    })
+  }
 
   return (
     <div className="min-h-screen bg-parchment flex flex-col p-4">
       <ScoreDisplay />
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="w-12"></div> {/* Spacer for centering */}
-        <h1 className="text-3xl font-cinzel font-bold text-dark-brown">
+      <div className="mb-6">
+        <h1 className="text-3xl font-cinzel font-bold text-dark-brown text-center">
           Battle!
         </h1>
-        {/* Inventory Button - Only show during BATTLE phase */}
-        {gamePhase === 'BATTLE' && (
-          <button
-            onClick={() => setIsInventoryOpen(true)}
-            className="w-12 h-12 rounded-full bg-forest-green hover:bg-forest-green/90 text-white flex items-center justify-center shadow-lg transition-colors"
-            title="Open Inventory"
-          >
-            🎒
-          </button>
-        )}
-        {gamePhase !== 'BATTLE' && <div className="w-12"></div>} {/* Spacer when button is hidden */}
       </div>
 
       {/* Stats Grid */}
@@ -141,25 +167,29 @@ export function BattleScreen() {
 
       {/* Attack Buttons */}
       <div className="space-y-3">
-        <button
-          onClick={rollAttack}
-          disabled={isRolling || showResults}
-          className="w-full py-4 px-6 rounded-lg font-cinzel font-bold text-xl text-white bg-deep-red hover:bg-deep-red/90 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors shadow-lg"
-        >
-          {isRolling || showResults ? 'Rolling...' : 'ATTACK'}
-        </button>
-
-        {/* Special actions row - Special Attack and Cast Spell */}
-        <div className="flex gap-2 mb-2">
-          {/* Special Attack button - 50% width */}
+        {/* Attack and Special Attack row */}
+        <div className="flex gap-2">
           <button
-            onClick={rollSpecialAttack}
+            onClick={rollAttack}
             disabled={isRolling || showResults}
-            className="flex-1 py-3 px-6 bg-purple-600 text-white rounded font-cinzel font-bold hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all active:scale-95 disabled:active:scale-100"
+            className="flex-1 py-3 px-6 rounded-lg font-cinzel font-bold text-xl text-white bg-deep-red hover:bg-deep-red/90 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors shadow-lg"
           >
-            Special Attack
+            {isRolling || showResults ? 'Rolling...' : '🗡️ ATTACK'}
           </button>
 
+          <button
+            onClick={rollSpecialAttack}
+            disabled={isRolling || showResults || !specialAttackAvailable}
+            className="flex-1 py-3 px-6 rounded-lg font-cinzel font-bold text-xl text-white bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all active:scale-95 disabled:active:scale-100 shadow-lg"
+          >
+            {!specialAttackAvailable
+              ? `⚔️ SPECIAL (${roundsUntilSpecialAttack})`
+              : '⚔️ SPECIAL'}
+          </button>
+        </div>
+
+        {/* Cast Spell and Inventory row */}
+        <div className="flex gap-2">
           {/* Cast Spell button - 50% width */}
           <button
             onClick={openSpellBook}
@@ -174,9 +204,20 @@ export function BattleScreen() {
             {!player?.spells?.length
               ? 'Cast Spell (No Spells)'
               : player?.mana === 0
-                ? `Cast Spell (⚡ 0/${player?.maxMana})`
-                : `Cast Spell (⚡ ${player?.mana}/${player?.maxMana})`
+                // ? `Cast Spell (⚡ 0/${player?.maxMana})`
+                // : `Cast Spell (⚡ ${player?.mana}/${player?.maxMana})`
+                ? `⚡️Cast Spell`
+                : `⚡️Cast Spell`
             }
+          </button>
+
+          {/* Inventory button - 50% width */}
+          <button
+            onClick={() => setIsInventoryOpen(true)}
+            disabled={gamePhase !== 'BATTLE'}
+            className="flex-1 py-3 px-6 bg-forest-green text-white rounded font-cinzel font-bold hover:bg-forest-green/90 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all active:scale-95 disabled:active:scale-100"
+          >
+            🧪 Inventory
           </button>
         </div>
       </div>

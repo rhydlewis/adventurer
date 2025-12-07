@@ -26,12 +26,25 @@ export function determineCombatResult(
   playerStrength: number,
   creatureStrength: number
 ): 'player_hit' | 'creature_hit' | 'draw' {
+  let result: 'player_hit' | 'creature_hit' | 'draw'
+
   if (playerStrength > creatureStrength) {
-    return 'creature_hit'  // Player wins, creature gets hit
+    result = 'creature_hit'  // Player wins, creature gets hit
   } else if (creatureStrength > playerStrength) {
-    return 'player_hit'    // Creature wins, player gets hit
+    result = 'player_hit'    // Creature wins, player gets hit
+  } else {
+    result = 'draw'
   }
-  return 'draw'
+
+  console.log('⚔️ COMBAT RESULT:', {
+    playerStrength,
+    creatureStrength,
+    result,
+    winner: result === 'player_hit' ? 'CREATURE' : result === 'creature_hit' ? 'PLAYER' : 'DRAW',
+    whoGetsHit: result === 'player_hit' ? 'PLAYER' : result === 'creature_hit' ? 'CREATURE' : 'NOBODY'
+  })
+
+  return result
 }
 
 /**

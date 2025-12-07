@@ -147,6 +147,7 @@ export interface GameState {
   // Combat tracking
   currentRound: number
   combatLog: CombatLogEntry[]
+  lastSpecialAttackRound: number | null
 
   // Current dice values (for display)
   currentPlayerRoll: number | null

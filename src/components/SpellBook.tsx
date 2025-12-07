@@ -6,9 +6,16 @@ export function SpellBook() {
   const castSpell = useGameStore((state) => state.castSpell)
   const cancelSpellCast = useGameStore((state) => state.cancelSpellCast)
 
-  if (!player) return null
+  console.log('SpellBook rendering, player:', player)
+  console.log('Player spells:', player?.spells)
+
+  if (!player) {
+    console.log('No player, returning null')
+    return null
+  }
 
   const playerSpells = player.spells.map(id => SPELL_LIBRARY[id]).filter(Boolean)
+  console.log('Mapped player spells:', playerSpells)
 
   const handleCastSpell = (spellId: string) => {
     // Haptic feedback

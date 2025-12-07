@@ -8,6 +8,8 @@ export interface QuickStartParams {
     stamina: number
     luck: number
     avatar?: string
+    mana: number
+    spells: string[]
   }
   creature: CreatureDefinition
 }
@@ -89,6 +91,8 @@ export function parseQuickStartParams(): QuickStartParams | null {
       skill: presetData.skill,
       stamina: presetData.stamina,
       luck: presetData.luck,
+      mana: presetData.mana,
+      spells: presetData.spells,
       avatar
     }
   } else {
@@ -101,14 +105,54 @@ export function parseQuickStartParams(): QuickStartParams | null {
       ? (avatarParam.endsWith('.jpg') ? avatarParam : `${avatarParam}.jpg`)
       : undefined
 
+    const parsedSkill = skill ? clamp(parseInt(skill), 7, 12) : 10
+    const parsedStamina = stamina ? clamp(parseInt(stamina), 14, 24) : 20
+    const parsedLuck = luck ? clamp(parseInt(luck), 7, 12) : 9
+
+    // Check if stats match a preset
+    let matchedPreset: typeof PRESETS[keyof typeof PRESETS] | null = null
+    for (const presetData of Object.values(PRESETS)) {
+      if (
+        presetData.skill === parsedSkill &&
+        presetData.stamina === parsedStamina &&
+        presetData.luck === parsedLuck
+      ) {
+        matchedPreset = presetData
+        break
+      }
+    }
+
     character = {
       name: params.get('name') || 'Hero',
-      skill: skill ? clamp(parseInt(skill), 7, 12) : 10,
-      stamina: stamina ? clamp(parseInt(stamina), 14, 24) : 20,
-      luck: luck ? clamp(parseInt(luck), 7, 12) : 9,
+      skill: parsedSkill,
+      stamina: parsedStamina,
+      luck: parsedLuck,
+      mana: matchedPreset ? matchedPreset.mana : 0,
+      spells: matchedPreset ? matchedPreset.spells : [],
       avatar
     }
   }
+
+  console.log('🔗 QUICK START PARAMS PARSED:', {
+    character: {
+      name: character.name,
+      skill: character.skill,
+      stamina: character.stamina,
+      luck: character.luck,
+      mana: character.mana,
+      spells: character.spells,
+      avatar: character.avatar
+    },
+    creature: {
+      name: creature.name,
+      skill: creature.skill,
+      stamina: creature.stamina,
+      mana: creature.mana,
+      maxMana: creature.maxMana,
+      spells: creature.spells,
+      spellCastChance: creature.spellCastChance
+    }
+  })
 
   return {
     character,

@@ -11,6 +11,10 @@ export interface CreatureDefinition {
   difficulty: CreatureDifficulty
   description: string
   reactions?: Reactions
+  mana?: number
+  maxMana?: number
+  spells?: string[]
+  spellCastChance?: number
 }
 
 export const CREATURE_LIBRARY: CreatureDefinition[] = [
@@ -28,6 +32,25 @@ export const CREATURE_LIBRARY: CreatureDefinition[] = [
       cry: ['Ow ow ow!', 'That hurt!', 'No fair!', 'Goblin sad now...'],
       victory: ['Goblin win! Goblin best!', 'Me told you so!', 'Victory dance time!'],
       loss: ['No no no!', 'This not over!', 'Goblin will remember...', 'Unfair fight!']
+    }
+  },
+  {
+    id: 'goblin_shaman',
+    name: 'Goblin Shaman',
+    skill: 5,
+    stamina: 6,
+    imageUrl: '/creatures/goblin.jpg',
+    difficulty: 'easy',
+    description: 'A goblin wielding crude magic, unpredictable and weak.',
+    mana: 6,
+    maxMana: 6,
+    spells: ['magic_missile'],
+    spellCastChance: 25,
+    reactions: {
+      gloat: ['Hehe! Magic hurt you!', 'Goblin cast spell!', 'Me powerful wizard!', 'Take my magic!'],
+      cry: ['Ow! No fair!', 'Magic hurt goblin!', 'This bad...', 'Goblin mana low...'],
+      victory: ['Goblin magic win!', 'Me best spellcaster!', 'Magic too strong for you!', 'Victory spell!'],
+      loss: ['No more magic...', 'Goblin beaten...', 'Spell fail...', 'Magic gone...']
     }
   },
   {
@@ -78,6 +101,25 @@ export const CREATURE_LIBRARY: CreatureDefinition[] = [
     }
   },
   {
+    id: 'corvid',
+    name: 'One Eyed Crow',
+    skill: 8,
+    stamina: 10,
+    imageUrl: '/creatures/crow.jpg',
+    difficulty: 'medium',
+    description: 'A one-eyed, evil crow wielding deadly magic.',
+    mana: 12,
+    maxMana: 12,
+    spells: ['magic_missile', 'drain', 'weakness'],
+    spellCastChance: 75,
+    reactions: {
+      gloat: ['Caw! Caw! Caw!', 'The (one) eye sees all!', 'Your fate is sealed!', 'I am the shadow!', 'The darkness claims you!', 'Your soul is mine!'],
+      cry: ['Ouch!', 'That hurts!', 'Aargh!', 'Gargh!', 'My eye!', 'I am wounded!', 'The pain it burns!'],
+      victory: ['I have won!', 'Victory is mine!', 'Caw! Caw! Caw!', 'The (one) eye prevails!', 'I am the master!', 'Sqwaak!',],
+      loss: ['No...', 'I failed...', 'This cannot be...', 'I will return...', 'Eye will return!']
+    }
+  },
+  {
     id: 'warrior',
     name: 'Corrupted Warrior',
     skill: 8,
@@ -117,6 +159,10 @@ export const CREATURE_LIBRARY: CreatureDefinition[] = [
     imageUrl: '/creatures/wraith.jpg',
     difficulty: 'hard',
     description: 'A spectral horror that drains the life force from its victims.',
+    mana: 12,
+    maxMana: 12,
+    spells: ['magic_missile', 'weakness', 'drain'],
+    spellCastChance: 35,
     reactions: {
       gloat: ['Your soul is mine!', 'Feel the eternal chill!', 'Succumb to despair!', '*A chilling, non-human shriek*'],
       cry: ['The light... it burns!', '*A tormented, echoing wail*', 'I cannot be touched!', '*Flickers violently*'],
@@ -164,6 +210,10 @@ export const CREATURE_LIBRARY: CreatureDefinition[] = [
     imageUrl: '/creatures/dragon.jpg',
     difficulty: 'legendary',
     description: 'An ancient wyrm with scales like armor and breath of fire.',
+    mana: 20,
+    maxMana: 20,
+    spells: ['fireball', 'drain'],
+    spellCastChance: 30,
     reactions: {
       gloat: ['BURN, MORTAL!', 'Your flesh sizzles nicely!', 'I am eternal!', 'Feel my ancient wrath!'],
       cry: ['IMPOSSIBLE!', 'You dare wound me?!', 'My scales... cracked?', 'This cannot be!'],
@@ -179,9 +229,13 @@ export const CREATURE_LIBRARY: CreatureDefinition[] = [
     imageUrl: '/creatures/lich.jpg',
     difficulty: 'legendary',
     description: 'A powerful undead sorcerer who has achieved immortality through dark magic.',
+    mana: 18,
+    maxMana: 18,
+    spells: ['fireball', 'drain', 'weakness', 'block'],
+    spellCastChance: 45,
     reactions: {
       gloat: ['A predictable end.', 'Your struggles are amusing to me.', 'Magic inexhaustible!', 'The grave calls you, foolish mortal.'],
-      cry: ['A temporary setback!', 'My phylactery is safe!', 'The spell resists!', '*A dry, frustrated cackle*'],
+      cry: ['A temporary setback!', 'My soul gem is safe!', 'The spell resists!', '*A dry, frustrated cackle*'],
       victory: ['Immortality is mine!', 'Kneel before your new master!', 'Your soul shall serve me forever!', 'The balance is restored (to the undead).'],
       loss: ['My reign... curtailed...', 'Impossible! I was prepared!', 'A curse upon your lineage!', '*Dissolves into ash with a cold whisper*']
     }

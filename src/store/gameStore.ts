@@ -15,7 +15,7 @@ import { SPELL_LIBRARY, applySpellEffect } from '../utils/spells'
 
 interface GameStore extends GameState {
   // Actions
-  selectCreature: (name: string, skill: number, stamina: number, imageUrl?: string, reactions?: Reactions) => void
+  selectCreature: (name: string, skill: number, stamina: number, imageUrl?: string, reactions?: Reactions, mana?: number, maxMana?: number, spells?: string[], spellCastChance?: number) => void
   createCharacter: (name: string, skill: number, stamina: number, luck: number, mana: number, spells: string[]) => void
   selectAvatar: (avatar: string) => void
   startBattle: () => void
@@ -54,6 +54,7 @@ const initialState: GameState = {
   },
   currentRound: 0,
   combatLog: [],
+  lastSpecialAttackRound: null,
   currentPlayerRoll: null,
   currentCreatureRoll: null,
   inventory: [],
@@ -81,17 +82,142 @@ const checkBattleEndAndAdvance = (get: () => GameStore, set: (state: Partial<Gam
         get().triggerReaction('player', 'victory')
         setTimeout(() => get().triggerReaction('creature', 'loss'), 1000)
       }
-      set({ gamePhase: 'BATTLE_END' })
+      // Delay transition to BATTLE_END to allow reactions to display
+      setTimeout(() => {
+        set({ gamePhase: 'BATTLE_END' })
+      }, 3000)
     } else {
       set({ gamePhase: 'BATTLE' })
     }
   }, delay)
 }
 
+// Helper function to attempt creature spell casting
+function tryCreatureSpellCast(get: any, set: any): boolean {
+  const currentState = get()
+  const { creature: stateCreature, player, activeEffects, currentRound } = currentState
+
+  console.log(`
+╔═══════════════════════════════════════════════════════════╗
+║ CREATURE SPELL CASTING CHECK
+╠═══════════════════════════════════════════════════════════╣
+║ Has spells: ${!!stateCreature.spells} (${stateCreature.spells?.length || 0} spells)
+║ Spells: ${stateCreature.spells?.join(', ') || 'none'}
+║ Has mana: ${!!stateCreature.mana} (${stateCreature.mana || 0}/${stateCreature.maxMana || 0})
+║ Spell cast chance: ${stateCreature.spellCastChance || 0}%
+╚═══════════════════════════════════════════════════════════╝
+  `)
+
+  // Check if creature can cast spell
+  if (!stateCreature.spells || !stateCreature.mana || stateCreature.mana <= 0 || !stateCreature.spellCastChance) {
+    console.log('❌ Creature cannot cast spells')
+    return false
+  }
+
+  const roll = Math.floor(Math.random() * 100) + 1
+  console.log(`🎲 Creature spell cast roll: ${roll} (need ≤ ${stateCreature.spellCastChance})`)
+
+  if (roll > stateCreature.spellCastChance) {
+    console.log(`❌ Creature failed spell cast roll (${roll} > ${stateCreature.spellCastChance})`)
+    return false
+  }
+
+  // Filter affordable spells
+  const affordableSpells = stateCreature.spells.filter(
+    (sId: string) => SPELL_LIBRARY[sId] && SPELL_LIBRARY[sId].manaCost <= stateCreature.mana!
+  )
+
+  console.log(`✅ CREATURE WILL CAST SPELL! Affordable spells: ${affordableSpells.length}`, affordableSpells)
+
+  if (affordableSpells.length === 0) {
+    console.log('❌ Creature has no affordable spells')
+    return false
+  }
+
+  // Cast random spell
+  const randomSpellId = affordableSpells[Math.floor(Math.random() * affordableSpells.length)]
+  const creatureSpell = SPELL_LIBRARY[randomSpellId]
+
+  console.log(`
+╔═══════════════════════════════════════════════════════════╗
+║ COMBAT ROUND ${currentRound + 1} - CREATURE SPELL
+╠═══════════════════════════════════════════════════════════╣
+║ Spell: ${creatureSpell.name}
+║ Mana Cost: ${creatureSpell.manaCost}
+║ Effect: ${creatureSpell.effect.type}
+╚═══════════════════════════════════════════════════════════╝
+  `)
+
+  const creatureResult = applySpellEffect(
+    creatureSpell,
+    stateCreature,
+    player!,
+    activeEffects,
+    false // casterIsPlayer
+  )
+
+  const finalCreature = {
+    ...creatureResult.updatedCaster as Creature,
+    mana: stateCreature.mana - creatureSpell.manaCost
+  }
+  const finalPlayer = creatureResult.updatedTarget as Character
+
+  const newRound = currentRound + 1
+  const creatureLogEntry: CombatLogEntry = {
+    round: newRound,
+    playerRoll: 0,
+    creatureRoll: 0,
+    playerAttackStrength: 0,
+    creatureAttackStrength: 0,
+    result: 'draw',
+    spellCast: {
+      caster: 'creature',
+      spellName: creatureSpell.name,
+      manaCost: creatureSpell.manaCost,
+      effect: creatureResult.description
+    }
+  }
+
+  set({
+    player: finalPlayer,
+    creature: finalCreature,
+    activeEffects: creatureResult.updatedEffects,
+    currentRound: newRound,
+    combatLog: [creatureLogEntry, ...currentState.combatLog],
+    lastRoundSummary: `${stateCreature.name} cast ${creatureSpell.name} (${creatureResult.description})`,
+    gamePhase: 'ROUND_RESULT',
+  })
+
+  // Haptic feedback
+  if (navigator.vibrate) {
+    navigator.vibrate(200)
+  }
+
+  // Trigger reaction
+  if (creatureResult.description.includes('damage')) {
+    get().triggerReaction('creature', 'gloat')
+    setTimeout(() => get().triggerReaction('player', 'cry'), 500)
+  }
+
+  checkBattleEndAndAdvance(get, set, 2000)
+  return true
+}
+
 export const useGameStore = create<GameStore>((set, get) => ({
   ...initialState,
 
-  selectCreature: (name: string, skill: number, stamina: number, imageUrl?: string, reactions?: Reactions) => {
+  selectCreature: (name: string, skill: number, stamina: number, imageUrl?: string, reactions?: Reactions, mana?: number, maxMana?: number, spells?: string[], spellCastChance?: number) => {
+    console.log('👹 SELECT CREATURE CALLED:', {
+      name,
+      skill,
+      stamina,
+      mana: mana || 0,
+      maxMana: maxMana || 0,
+      spells: spells || [],
+      spellCount: (spells || []).length,
+      spellCastChance: spellCastChance || 0
+    })
+
     set({
       creature: {
         name,
@@ -100,11 +226,26 @@ export const useGameStore = create<GameStore>((set, get) => ({
         currentStamina: stamina,
         imageUrl,
         reactions,
+        mana: mana || 0,
+        maxMana: maxMana || 0,
+        spells: spells || [],
+        spellCastChance: spellCastChance || 0,
       },
     })
   },
 
   createCharacter: (name: string, skill: number, stamina: number, luck: number, mana: number, spells: string[]) => {
+    console.log('👤 CREATE CHARACTER CALLED:', {
+      name,
+      skill,
+      stamina,
+      luck,
+      mana,
+      maxMana: mana,
+      spells,
+      spellCount: spells.length
+    })
+
     set({
       player: {
         name,
@@ -150,6 +291,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       gamePhase: 'BATTLE',
       currentRound: 0,
       combatLog: [],
+      lastSpecialAttackRound: null,
       currentPlayerRoll: null,
       currentCreatureRoll: null,
       inventory: JSON.parse(JSON.stringify(DEFAULT_INVENTORY)), // Deep copy
@@ -189,6 +331,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     // Simulate dice rolling delay
     setTimeout(() => {
+      // First, check if creature wants to cast a spell instead of attacking
+      const creatureCastSpell = tryCreatureSpellCast(get, set)
+
+      if (creatureCastSpell) {
+        // Creature cast a spell instead of normal combat
+        console.log('⚔️ Creature cast spell instead of normal attack - combat round cancelled')
+        return
+      }
+
+      console.log('⚔️ Creature did not cast spell - proceeding with normal combat')
+
       const playerRoll = roll2d6()
       const creatureRoll = roll2d6()
 
@@ -205,12 +358,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
       let playerBlocked = false
       let creatureBlocked = false
 
+      console.log('Active effects before attack:', activeEffects)
+
       activeEffects.forEach(effect => {
         if (effect.type === 'skill_buff' && effect.target === 'player') {
           playerSkillMod += effect.value
+          console.log('Applying player skill buff:', effect.value)
         }
         if (effect.type === 'skill_debuff' && effect.target === 'creature') {
           creatureSkillMod -= effect.value
+          console.log('Applying creature skill debuff:', effect.value)
         }
         if (effect.type === 'block' && effect.target === 'player') {
           playerBlocked = true
@@ -219,6 +376,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
           creatureBlocked = true
         }
       })
+
+      console.log('Player skill mod:', playerSkillMod, 'Creature skill mod:', creatureSkillMod)
 
       const playerAttackStrength = calculateAttackStrength(
         playerRoll,
@@ -234,6 +393,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
         creatureAttackStrength
       )
 
+      console.log(`
+╔═══════════════════════════════════════════════════════════╗
+║ COMBAT ROUND ${state.currentRound + 1} - NORMAL ATTACK
+╠═══════════════════════════════════════════════════════════╣
+║ PLAYER:   Roll ${playerRoll} + Skill (${state.player!.skill}${playerSkillMod !== 0 ? ` + ${playerSkillMod}` : ''}) = ${playerAttackStrength}
+║ CREATURE: Roll ${creatureRoll} + Skill (${state.creature.skill}${creatureSkillMod !== 0 ? ` ${creatureSkillMod}` : ''}) = ${creatureAttackStrength}
+╠═══════════════════════════════════════════════════════════╣
+║ RESULT: ${result === 'player_hit' ? 'CREATURE HITS PLAYER' : result === 'creature_hit' ? 'PLAYER HITS CREATURE' : 'DRAW'}
+╚═══════════════════════════════════════════════════════════╝
+      `)
+
       const newRound = state.currentRound + 1
 
       // Create log entry
@@ -245,6 +415,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
         creatureAttackStrength,
         result,
       }
+
+      console.log('📝 LOG ENTRY CREATED:', {
+        round: logEntry.round,
+        result: logEntry.result,
+        playerAttackStrength: logEntry.playerAttackStrength,
+        creatureAttackStrength: logEntry.creatureAttackStrength,
+        willBeAddedToFrontOfArray: true
+      })
 
       let updatedCreature = state.creature
       let summary = ''
@@ -401,6 +579,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
       let result: 'player_hit' | 'creature_hit' | 'draw'
 
+      console.log(`
+╔═══════════════════════════════════════════════════════════╗
+║ COMBAT ROUND ${newRound} - SPECIAL ATTACK
+╠═══════════════════════════════════════════════════════════╣
+║ Backfire Roll: ${backfireRoll} (backfire on 5-6)
+║ RESULT: ${backfired ? 'BACKFIRED! Player takes 2 damage' : 'SUCCESS! Creature takes 4 damage'}
+╚═══════════════════════════════════════════════════════════╝
+      `)
+
       if (backfired) {
         // Backfire! Player takes damage
         result = 'creature_hit'
@@ -422,6 +609,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           combatLog: [logEntry, ...state.combatLog],
           currentPlayerRoll: 0, // Display indicators
           currentCreatureRoll: 99,
+          lastSpecialAttackRound: newRound,
           pendingLuckTest: {
             damage: 2,
             target: 'player',
@@ -456,6 +644,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           combatLog: [logEntry, ...state.combatLog],
           currentPlayerRoll: 99, // Display indicators
           currentCreatureRoll: 0,
+          lastSpecialAttackRound: newRound,
           lastRoundSummary: summary,
           creature: {
             ...state.creature,
@@ -602,7 +791,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       creatureRoll: 0,
       playerAttackStrength: 0,
       creatureAttackStrength: 0,
-      result: target === 'player' ? 'creature_hit' : 'player_hit' as CombatResult,
+      result: target === 'player' ? 'player_hit' : 'creature_hit' as CombatResult,
       isLuckTest: true,
       luckRoll: luckTestResult.roll,
       wasLucky: luckTestResult.wasLucky,
@@ -679,7 +868,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       creatureRoll: 0,
       playerAttackStrength: 0,
       creatureAttackStrength: 0,
-      result: 'draw' as CombatResult,
+      result: target === 'player' ? 'player_hit' : 'creature_hit' as CombatResult,
       isLuckTest: true,
       luckRoll: 0,
       wasLucky: false,
@@ -758,6 +947,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
       navigator.vibrate(350)
     }
 
+    console.log(`
+╔═══════════════════════════════════════════════════════════╗
+║ COMBAT ROUND ${state.currentRound + 1} - PLAYER SPELL
+╠═══════════════════════════════════════════════════════════╣
+║ Spell: ${spell.name}
+║ Mana Cost: ${spell.manaCost}
+║ Effect: ${spell.effect.type}
+║ Power: ${spell.effect.power}
+╚═══════════════════════════════════════════════════════════╝
+    `)
+
     // Apply spell effect
     const result = applySpellEffect(
       spell,
@@ -766,6 +966,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       activeEffects,
       true // casterIsPlayer
     )
+
+    console.log('Spell effect applied, updated effects:', result.updatedEffects)
 
     // Update state with spell effects
     const updatedPlayer = {
@@ -796,8 +998,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       creature: updatedCreature,
       activeEffects: result.updatedEffects,
       currentRound: newRound,
-      combatLog: [...state.combatLog, logEntry],
-      lastRoundSummary: `You cast ${spell.name}! ${result.description}`,
+      combatLog: [logEntry, ...state.combatLog],
+      lastRoundSummary: `You cast ${spell.name} (${result.description})`,
       gamePhase: 'ROUND_RESULT',
     })
 
@@ -805,7 +1007,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (updatedCreature.currentStamina <= 0) {
       get().triggerReaction('player', 'victory')
       setTimeout(() => get().triggerReaction('creature', 'loss'), 1000)
-      setTimeout(() => set({ gamePhase: 'BATTLE_END' }), 2000)
+      setTimeout(() => set({ gamePhase: 'BATTLE_END' }), 3000)
       return
     }
 
@@ -816,80 +1018,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     // Creature response - spell or attack
     setTimeout(() => {
-      const currentState = get()
-      const { creature: stateCreature } = currentState
+      console.log('Creature responding to player spell, active effects:', get().activeEffects)
 
-      // Check if creature can cast spell
-      if (stateCreature.spells && stateCreature.mana && stateCreature.mana > 0 && stateCreature.spellCastChance) {
-        const roll = Math.floor(Math.random() * 100) + 1
+      // Try to cast a spell in response
+      const creatureCastSpell = tryCreatureSpellCast(get, set)
 
-        if (roll <= stateCreature.spellCastChance) {
-          // Filter affordable spells
-          const affordableSpells = stateCreature.spells.filter(
-            sId => SPELL_LIBRARY[sId] && SPELL_LIBRARY[sId].manaCost <= stateCreature.mana!
-          )
-
-          if (affordableSpells.length > 0) {
-            // Cast random spell
-            const randomSpellId = affordableSpells[Math.floor(Math.random() * affordableSpells.length)]
-            const creatureSpell = SPELL_LIBRARY[randomSpellId]
-
-            const creatureResult = applySpellEffect(
-              creatureSpell,
-              stateCreature,
-              currentState.player!,
-              currentState.activeEffects,
-              false // casterIsPlayer
-            )
-
-            const finalCreature = {
-              ...creatureResult.updatedCaster as Creature,
-              mana: stateCreature.mana - creatureSpell.manaCost
-            }
-            const finalPlayer = creatureResult.updatedTarget as Character
-
-            const creatureLogEntry: CombatLogEntry = {
-              round: currentState.currentRound,
-              playerRoll: 0,
-              creatureRoll: 0,
-              playerAttackStrength: 0,
-              creatureAttackStrength: 0,
-              result: 'draw',
-              spellCast: {
-                caster: 'creature',
-                spellName: creatureSpell.name,
-                manaCost: creatureSpell.manaCost,
-                effect: creatureResult.description
-              }
-            }
-
-            set({
-              player: finalPlayer,
-              creature: finalCreature,
-              activeEffects: creatureResult.updatedEffects,
-              combatLog: [...currentState.combatLog, creatureLogEntry],
-              lastRoundSummary: `${stateCreature.name} cast ${creatureSpell.name}! ${creatureResult.description}`,
-            })
-
-            // Haptic feedback
-            if (navigator.vibrate) {
-              navigator.vibrate(200)
-            }
-
-            // Trigger reaction
-            if (creatureResult.description.includes('damage')) {
-              get().triggerReaction('creature', 'gloat')
-              setTimeout(() => get().triggerReaction('player', 'cry'), 500)
-            }
-
-            checkBattleEndAndAdvance(get, set, 2000)
-            return
-          }
-        }
+      if (!creatureCastSpell) {
+        // Creature didn't cast spell, perform normal attack
+        console.log('⚔️ Creature performing normal attack in response')
+        get().rollAttack()
       }
-
-      // Default: creature attacks normally
-      get().rollAttack()
     }, 1500)
   },
 

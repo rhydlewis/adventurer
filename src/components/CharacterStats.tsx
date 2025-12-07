@@ -36,11 +36,11 @@ export function CharacterStats({ character, label, tookDamage = false, wasHealed
 
       {/* Creature Image */}
       {imageUrl && (
-        <div className="mb-4 rounded-lg overflow-hidden bg-dark-brown/5">
+        <div className="mb-4 rounded-lg overflow-hidden bg-dark-brown/5 w-full max-w-[200px] md:max-w-[300px] mx-auto aspect-square">
           <img
             src={imageUrl}
             alt={character.name}
-            className="w-full max-w-[200px] md:max-w-[300px] mx-auto object-cover"
+            className="w-full h-full object-cover object-top"
           />
         </div>
       )}
@@ -48,10 +48,10 @@ export function CharacterStats({ character, label, tookDamage = false, wasHealed
       <div className="text-dark-brown mb-2">
         <span className="font-semibold">{character.name}</span>
       </div>
-      <div className="space-y-2">
+      <div className="grid grid-cols-2 gap-3">
         <div>
-          <div className="text-sm text-dark-brown/70">SKILL</div>
-          <div className="text-2xl font-bold text-dark-brown">
+          <div className="text-xs text-dark-brown/70">SKILL</div>
+          <div className="text-xl font-bold text-dark-brown">
             {character.skill}
             {skillMod !== 0 && (
               <span className={skillMod > 0 ? 'text-green-600' : 'text-red-600'}>
@@ -61,8 +61,8 @@ export function CharacterStats({ character, label, tookDamage = false, wasHealed
           </div>
         </div>
         <div>
-          <div className="text-sm text-dark-brown/70">STAMINA</div>
-          <div className="text-2xl font-bold text-dark-brown">
+          <div className="text-xs text-dark-brown/70">STAMINA</div>
+          <div className="text-xl font-bold text-dark-brown">
             {character.currentStamina} / {character.maxStamina}
           </div>
           {/* Stamina bar */}
@@ -76,8 +76,8 @@ export function CharacterStats({ character, label, tookDamage = false, wasHealed
         {/* Luck stat - only show for player characters */}
         {'luck' in character && character.luck !== undefined && (
           <div>
-            <div className="text-sm text-dark-brown/70">LUCK</div>
-            <div className="text-2xl font-bold text-yellow-600">
+            <div className="text-xs text-dark-brown/70">LUCK</div>
+            <div className="text-xl font-bold text-yellow-600">
               {character.luck} / {character.maxLuck}
             </div>
             {/* Luck bar */}
@@ -92,8 +92,8 @@ export function CharacterStats({ character, label, tookDamage = false, wasHealed
         {/* Mana stat - only show if character has mana */}
         {'maxMana' in character && character.maxMana !== undefined && character.maxMana > 0 && (
           <div>
-            <div className="text-sm text-dark-brown/70">MANA</div>
-            <div className="text-2xl font-bold text-blue-600">
+            <div className="text-xs text-dark-brown/70">MANA</div>
+            <div className="text-xl font-bold text-blue-600">
               {character.mana} / {character.maxMana}
             </div>
             {/* Mana bar */}

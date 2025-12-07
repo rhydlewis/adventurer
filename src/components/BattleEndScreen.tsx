@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useGameStore } from '../store/gameStore'
 import type { CreatureDifficulty } from '../types'
+import { calculateBattleScore } from '../utils/scoring'
 
 export function BattleEndScreen() {
   const player = useGameStore((state) => state.player)
@@ -13,6 +14,25 @@ export function BattleEndScreen() {
   const hasProcessedCampaign = useRef(false)
 
   const playerWon = player ? player.currentStamina > 0 : false
+
+  // Calculate battle score for single battles
+  const damageDealt = creature.maxStamina - creature.currentStamina
+  const damageTaken = player ? player.maxStamina - player.currentStamina : 0
+
+  // Determine creature difficulty
+  let difficulty: CreatureDifficulty = 'medium'
+  if (creature.maxStamina <= 6) difficulty = 'easy'
+  else if (creature.maxStamina >= 10) difficulty = 'hard'
+  if (creature.maxStamina >= 15 && creature.skill >= 10) difficulty = 'legendary'
+
+  const battleScore = playerWon ? calculateBattleScore({
+    roundsCompleted: currentRound,
+    damageDealt,
+    damageTaken,
+    creatureDifficulty: difficulty,
+    isPerfectVictory: damageTaken === 0,
+    currentStreak: 0
+  }) : 0
 
   // Handle campaign mode routing (only once)
   useEffect(() => {
@@ -47,7 +67,7 @@ export function BattleEndScreen() {
     }
 
     const text = `${player.name} fought ${creature.name} and ${
-      playerWon ? 'won' : 'was defeated'
+      playerWon ? `won with a score of ${battleScore.toLocaleString()}` : 'was defeated'
     } in ${currentRound} rounds!`
 
     if (navigator.share) {
@@ -93,6 +113,26 @@ export function BattleEndScreen() {
         <p className="text-xl text-dark-brown font-cinzel mb-8">
           {playerWon ? `Victory in ${currentRound} rounds!` : `Defeated in ${currentRound} rounds.`}
         </p>
+
+        {/* Battle Score - Only show on victory */}
+        {playerWon && (
+          <div className="bg-white/50 rounded-lg p-6 mb-6">
+            <h2 className="font-cinzel font-bold text-lg text-dark-brown mb-4">
+              Battle Score
+            </h2>
+            <div className="text-4xl font-bold text-forest-green mb-4">
+              {battleScore.toLocaleString()}
+            </div>
+            <div className="text-sm text-dark-brown/70 space-y-1">
+              <div>Rounds: {currentRound}</div>
+              <div>Damage Dealt: {damageDealt}</div>
+              <div>Damage Taken: {damageTaken}</div>
+              {damageTaken === 0 && (
+                <div className="text-forest-green font-bold">PERFECT VICTORY!</div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Final Stats */}
         <div className="bg-white/50 rounded-lg p-6 mb-8">
