@@ -67,6 +67,7 @@ function App() {
   }
 
   if (
+    gamePhase === 'BATTLE_INTRO' ||
     gamePhase === 'BATTLE' ||
     gamePhase === 'DICE_ROLLING' ||
     gamePhase === 'SPELL_CASTING' ||
