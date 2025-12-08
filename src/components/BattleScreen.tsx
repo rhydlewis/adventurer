@@ -7,6 +7,7 @@ import { SpeechBubble } from './SpeechBubble'
 import { LuckTestModal } from './LuckTestModal'
 import { ScoreDisplay } from './ScoreDisplay'
 import { SpellBook } from './SpellBook'
+import { NarrativeDisplay } from './NarrativeDisplay'
 import { useState, useEffect } from 'react'
 
 export function BattleScreen() {
@@ -25,6 +26,7 @@ export function BattleScreen() {
   const activeReaction = useGameStore((state) => state.activeReaction)
   const clearReaction = useGameStore((state) => state.clearReaction)
   const openSpellBook = useGameStore((state) => state.openSpellBook)
+  const advancePhase = useGameStore((state) => state.advancePhase)
 
   const [playerWasHealed, setPlayerWasHealed] = useState(false)
   const [previousPlayerStamina, setPreviousPlayerStamina] = useState(player?.currentStamina || 0)
@@ -39,6 +41,15 @@ export function BattleScreen() {
     }
     setPreviousPlayerStamina(player?.currentStamina || 0)
   }, [player?.currentStamina, previousPlayerStamina])
+
+  // Handle narrative continuation
+  const handleNarrativeContinue = () => {
+    if (gamePhase === 'BATTLE_INTRO') {
+      // Clear narrative and advance to battle
+      advancePhase('BATTLE')
+    }
+    // For BATTLE_END, the existing flow handles navigation
+  }
 
   if (!player) return null
 
@@ -230,6 +241,11 @@ export function BattleScreen() {
 
       {/* Spell Book modal */}
       {gamePhase === 'SPELL_CASTING' && <SpellBook />}
+
+      {/* Narrative Display - Show during BATTLE_INTRO and BATTLE_END */}
+      {(gamePhase === 'BATTLE_INTRO' || gamePhase === 'BATTLE_END') && (
+        <NarrativeDisplay onContinue={handleNarrativeContinue} />
+      )}
 
       {/* Inventory Popover - Only show during BATTLE phase */}
       {gamePhase === 'BATTLE' && (

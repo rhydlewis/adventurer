@@ -2,6 +2,7 @@ export type GamePhase =
   | 'CHARACTER_SELECT'
   | 'AVATAR_SELECT'
   | 'CREATURE_SELECT'
+  | 'BATTLE_INTRO'
   | 'BATTLE'
   | 'DICE_ROLLING'
   | 'SPELL_CASTING'
@@ -20,6 +21,15 @@ export interface Reactions {
   cry: string[]
   victory: string[]
   loss: string[]
+}
+
+// Battle narrative system
+export interface BattleNarrative {
+  creatureId: string
+  intro: string              // Shown before battle starts
+  victoryText: string        // Shown when player wins
+  defeatText: string         // Shown when player loses
+  flavorText?: string        // Optional atmospheric text during battle
 }
 
 export type ItemType = 'health_potion' | 'luck_potion' | 'skill_potion'
@@ -86,6 +96,7 @@ export interface Character {
 }
 
 export interface Creature {
+  id?: string          // Optional creature ID for narrative lookup
   name: string
   skill: number
   maxStamina: number
@@ -168,6 +179,12 @@ export interface GameState {
 
   // Reactions
   activeReaction: ActiveReaction | null
+
+  // Narrative
+  currentNarrative: {
+    text: string
+    type: 'intro' | 'victory' | 'defeat'
+  } | null
 
   // Campaign
   campaignState: CampaignState | null

@@ -12,10 +12,11 @@ import { calculateBattleScore } from '../utils/scoring'
 import { calculateRecovery } from '../utils/recovery'
 import { saveHighScore } from '../utils/storage'
 import { SPELL_LIBRARY, applySpellEffect } from '../utils/spells'
+import { getIntroText, getVictoryText, getDefeatText } from '../data/battleNarratives'
 
 interface GameStore extends GameState {
   // Actions
-  selectCreature: (name: string, skill: number, stamina: number, imageUrl?: string, reactions?: Reactions, mana?: number, maxMana?: number, spells?: string[], spellCastChance?: number) => void
+  selectCreature: (name: string, skill: number, stamina: number, imageUrl?: string, reactions?: Reactions, mana?: number, maxMana?: number, spells?: string[], spellCastChance?: number, id?: string) => void
   createCharacter: (name: string, skill: number, stamina: number, luck: number, mana: number, spells: string[]) => void
   selectAvatar: (avatar: string) => void
   startBattle: () => void
@@ -63,6 +64,7 @@ const initialState: GameState = {
   lastRoundSummary: '',
   showFullLog: false,
   activeReaction: null,
+  currentNarrative: null,
   campaignState: null,
 }
 
@@ -74,17 +76,33 @@ const checkBattleEndAndAdvance = (get: () => GameStore, set: (state: Partial<Gam
       currentState.player!.currentStamina <= 0 ||
       currentState.creature.currentStamina <= 0
     ) {
+      // Determine victory or defeat
+      const playerDefeated = currentState.player!.currentStamina <= 0
+      const creatureId = currentState.creature.id || currentState.creature.name.toLowerCase()
+
+      // Get appropriate narrative text
+      const narrativeText = playerDefeated
+        ? getDefeatText(currentState.creature.name, creatureId)
+        : getVictoryText(currentState.creature.name, creatureId)
+
       // Trigger victory/loss reactions
-      if (currentState.player!.currentStamina <= 0) {
+      if (playerDefeated) {
         get().triggerReaction('creature', 'victory')
         setTimeout(() => get().triggerReaction('player', 'loss'), 1000)
       } else {
         get().triggerReaction('player', 'victory')
         setTimeout(() => get().triggerReaction('creature', 'loss'), 1000)
       }
-      // Delay transition to BATTLE_END to allow reactions to display
+
+      // Set narrative and delay transition to BATTLE_END to allow reactions to display
       setTimeout(() => {
-        set({ gamePhase: 'BATTLE_END' })
+        set({
+          currentNarrative: {
+            text: narrativeText,
+            type: playerDefeated ? 'defeat' : 'victory'
+          },
+          gamePhase: 'BATTLE_END'
+        })
       }, 3000)
     } else {
       set({ gamePhase: 'BATTLE' })
@@ -206,8 +224,9 @@ function tryCreatureSpellCast(get: any, set: any): boolean {
 export const useGameStore = create<GameStore>((set, get) => ({
   ...initialState,
 
-  selectCreature: (name: string, skill: number, stamina: number, imageUrl?: string, reactions?: Reactions, mana?: number, maxMana?: number, spells?: string[], spellCastChance?: number) => {
+  selectCreature: (name: string, skill: number, stamina: number, imageUrl?: string, reactions?: Reactions, mana?: number, maxMana?: number, spells?: string[], spellCastChance?: number, id?: string) => {
     console.log('👹 SELECT CREATURE CALLED:', {
+      id,
       name,
       skill,
       stamina,
@@ -220,6 +239,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     set({
       creature: {
+        id,
         name,
         skill,
         maxStamina: stamina,
@@ -287,8 +307,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
   startBattle: () => {
     const state = get()
 
+    // Get intro narrative text
+    const creatureId = state.creature.id || state.creature.name.toLowerCase()
+    const introText = getIntroText(state.creature.name, creatureId)
+
     set({
-      gamePhase: 'BATTLE',
+      gamePhase: 'BATTLE_INTRO',
+      currentNarrative: {
+        text: introText,
+        type: 'intro'
+      },
       currentRound: 0,
       combatLog: [],
       lastSpecialAttackRound: null,

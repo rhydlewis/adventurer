@@ -37,7 +37,8 @@ export function CreatureSelectScreen() {
       creature.mana,
       creature.maxMana,
       creature.spells,
-      creature.spellCastChance
+      creature.spellCastChance,
+      creature.id  // Pass creature ID for narrative lookup
     )
   }
 
